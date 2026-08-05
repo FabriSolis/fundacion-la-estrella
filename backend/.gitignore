@@ -1,0 +1,9 @@
+node_modules/
+.env
+.vscode/
+dist/
+coverage/
+npm-debug.log*
+package-lock.json
+*.bak
+Thumbs.db
