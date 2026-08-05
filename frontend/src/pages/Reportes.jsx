@@ -1,17 +1,18 @@
 import { Typography } from "@mui/material";
 
-function Pacientes() {
+function Reportes() {
   return (
     <>
       <Typography variant="h4" fontWeight="bold">
-        Gestión de pacientes
+        Reportes e indicadores
       </Typography>
 
       <Typography color="text.secondary">
-        Este módulo se encuentra en desarrollo.
+        Este módulo mostrará información estadística sobre alumnos, pacientes,
+        cursos, turnos y pagos.
       </Typography>
     </>
   );
 }
 
-export default Pacientes;
+export default Reportes;

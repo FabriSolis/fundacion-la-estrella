@@ -1,39 +1,88 @@
-import { Box, Button, Container, Paper, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Box, Card, CardContent, Grid, Typography } from "@mui/material";
+
+import PeopleIcon from "@mui/icons-material/People";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import SchoolIcon from "@mui/icons-material/School";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+
+const indicadores = [
+  {
+    titulo: "Usuarios",
+    valor: 1,
+    icono: <PeopleIcon fontSize="large" />,
+  },
+  {
+    titulo: "Pacientes",
+    valor: 0,
+    icono: <FavoriteIcon fontSize="large" />,
+  },
+  {
+    titulo: "Alumnos",
+    valor: 0,
+    icono: <SchoolIcon fontSize="large" />,
+  },
+  {
+    titulo: "Turnos de hoy",
+    valor: 0,
+    icono: <CalendarMonthIcon fontSize="large" />,
+  },
+];
 
 function Dashboard() {
-  const navigate = useNavigate();
-
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    navigate("/");
-  };
-
   return (
-    <Container sx={{ py: 5 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Panel principal
-        </Typography>
+    <Box>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        Dashboard
+      </Typography>
 
-        <Typography sx={{ mb: 1 }}>
-          Bienvenido, {usuario.nombre || "usuario"}.
-        </Typography>
+      <Typography color="text.secondary" sx={{ mb: 4 }}>
+        Bienvenido, {usuario.nombre}. Este es el resumen general del sistema.
+      </Typography>
 
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Rol: {usuario.rol || "Sin rol"}
-        </Typography>
+      <Grid container spacing={3}>
+        {indicadores.map((indicador) => (
+          <Grid item xs={12} sm={6} lg={3} key={indicador.titulo}>
+            <Card sx={{ borderRadius: 3 }}>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Box>
+                    <Typography color="text.secondary">
+                      {indicador.titulo}
+                    </Typography>
 
-        <Box>
-          <Button variant="outlined" color="error" onClick={cerrarSesion}>
-            Cerrar sesión
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+                    <Typography variant="h4" fontWeight="bold">
+                      {indicador.valor}
+                    </Typography>
+                  </Box>
+
+                  {indicador.icono}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      <Card sx={{ mt: 4, borderRadius: 3 }}>
+        <CardContent>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Últimos movimientos
+          </Typography>
+
+          <Typography color="text.secondary">
+            Todavía no hay movimientos registrados.
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

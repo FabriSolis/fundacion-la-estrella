@@ -1,6 +1,17 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Usuarios from "./pages/Usuarios";
+import FormularioUsuario from "./pages/FormularioUsuario";
+import Pacientes from "./pages/Pacientes";
+import Alumnos from "./pages/Alumnos";
+import Cursos from "./pages/Cursos";
+import Turnos from "./pages/Turnos";
+import Pagos from "./pages/Pagos";
+import Reportes from "./pages/Reportes";
+
+import MainLayout from "./layouts/MainLayout";
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
@@ -18,13 +29,22 @@ function App() {
       <Route path="/" element={<Login />} />
 
       <Route
-        path="/dashboard"
         element={
           <RutaProtegida>
-            <Dashboard />
+            <MainLayout />
           </RutaProtegida>
         }
-      />
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/usuarios" element={<Usuarios />} />
+        <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
+        <Route path="/pacientes" element={<Pacientes />} />
+        <Route path="/alumnos" element={<Alumnos />} />
+        <Route path="/cursos" element={<Cursos />} />
+        <Route path="/turnos" element={<Turnos />} />
+        <Route path="/pagos" element={<Pagos />} />
+        <Route path="/reportes" element={<Reportes />} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
