@@ -16,19 +16,35 @@ function validarId(valor) {
 }
 
 function convertirHora(hora) {
-  if (typeof hora !== "string") return null;
+  if (typeof hora !== "string") {
+    return null;
+  }
 
   const partes = hora.split(":");
-  if (partes.length < 2) return null;
 
-  const h = Number(partes[0]);
-  const m = Number(partes[1]);
-  const s = partes[2] ? Number(partes[2]) : 0;
+  if (partes.length < 2) {
+    return null;
+  }
 
-  const fecha = new Date(1970, 0, 1);
-  fecha.setHours(h, m, s, 0);
+  const horas = Number(partes[0]);
+  const minutos = Number(partes[1]);
+  const segundos = partes[2] ? Number(partes[2]) : 0;
 
-  return fecha;
+  if (
+    !Number.isInteger(horas) ||
+    !Number.isInteger(minutos) ||
+    !Number.isInteger(segundos) ||
+    horas < 0 ||
+    horas > 23 ||
+    minutos < 0 ||
+    minutos > 59 ||
+    segundos < 0 ||
+    segundos > 59
+  ) {
+    return null;
+  }
+
+  return new Date(Date.UTC(1970, 0, 1, horas, minutos, segundos, 0));
 }
 
 async function listarTurnos(req, res) {
