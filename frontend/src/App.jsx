@@ -11,6 +11,8 @@ import Turnos from "./pages/Turnos";
 import Pagos from "./pages/Pagos";
 import Reportes from "./pages/Reportes";
 import FormularioPaciente from "./pages/FormularioPaciente";
+import Terapeutas from "./pages/Terapeutas";
+import FormularioTerapeuta from "./pages/FormularioTerapeuta";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -47,6 +49,14 @@ function App() {
         <Route path="/turnos" element={<Turnos />} />
         <Route path="/pagos" element={<Pagos />} />
         <Route path="/reportes" element={<Reportes />} />
+        <Route path="/terapeutas" element={<Terapeutas />} />
+
+        <Route path="/terapeutas/nuevo" element={<FormularioTerapeuta />} />
+
+        <Route
+          path="/terapeutas/:id/editar"
+          element={<FormularioTerapeuta />}
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -6,6 +6,7 @@ const usuarioRoutes = require("./routes/usuarioRoutes");
 const rolRoutes = require("./routes/rolRoutes");
 const pacienteRoutes = require("./routes/pacienteRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const terapeutaRoutes = require("./routes/terapeutaRoutes");
 
 const app = express();
 
@@ -23,5 +24,6 @@ app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/roles", rolRoutes);
 app.use("/api/pacientes", pacienteRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/terapeutas", terapeutaRoutes);
 
 module.exports = app;

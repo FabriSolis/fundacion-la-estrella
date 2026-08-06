@@ -14,6 +14,7 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
@@ -32,6 +33,11 @@ const opciones = [
   { texto: "Dashboard", icono: <DashboardIcon />, ruta: "/dashboard" },
   { texto: "Usuarios", icono: <PeopleIcon />, ruta: "/usuarios" },
   { texto: "Pacientes", icono: <FavoriteIcon />, ruta: "/pacientes" },
+  {
+    texto: "Terapeutas",
+    icono: <MedicalServicesIcon />,
+    ruta: "/terapeutas",
+  },
   { texto: "Alumnos", icono: <SchoolIcon />, ruta: "/alumnos" },
   { texto: "Cursos", icono: <MenuBookIcon />, ruta: "/cursos" },
   { texto: "Turnos", icono: <CalendarMonthIcon />, ruta: "/turnos" },
