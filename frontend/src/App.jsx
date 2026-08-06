@@ -10,6 +10,7 @@ import Cursos from "./pages/Cursos";
 import Turnos from "./pages/Turnos";
 import Pagos from "./pages/Pagos";
 import Reportes from "./pages/Reportes";
+import FormularioPaciente from "./pages/FormularioPaciente";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -39,6 +40,8 @@ function App() {
         <Route path="/usuarios" element={<Usuarios />} />
         <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
         <Route path="/pacientes" element={<Pacientes />} />
+        <Route path="/pacientes/nuevo" element={<FormularioPaciente />} />
+        <Route path="/pacientes/:id/editar" element={<FormularioPaciente />} />
         <Route path="/alumnos" element={<Alumnos />} />
         <Route path="/cursos" element={<Cursos />} />
         <Route path="/turnos" element={<Turnos />} />
