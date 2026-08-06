@@ -38,11 +38,6 @@ const opciones = [
     icono: <MedicalServicesIcon />,
     ruta: "/terapeutas",
   },
-  {
-    texto: "Turnos",
-    icono: <CalendarMonthIcon />,
-    ruta: "/turnos",
-  },
   { texto: "Alumnos", icono: <SchoolIcon />, ruta: "/alumnos" },
   { texto: "Cursos", icono: <MenuBookIcon />, ruta: "/cursos" },
   { texto: "Turnos", icono: <CalendarMonthIcon />, ruta: "/turnos" },
