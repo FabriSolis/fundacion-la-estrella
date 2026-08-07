@@ -15,6 +15,8 @@ import Terapeutas from "./pages/Terapeutas";
 import FormularioTerapeuta from "./pages/FormularioTerapeuta";
 import FormularioTurno from "./pages/FormularioTurno";
 import MainLayout from "./layouts/MainLayout";
+import FormularioSesion from "./pages/FormularioSesion";
+import HistorialPaciente from "./pages/HistorialPaciente";
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
@@ -47,10 +49,9 @@ function App() {
         <Route path="/alumnos" element={<Alumnos />} />
         <Route path="/cursos" element={<Cursos />} />
         <Route path="/turnos" element={<Turnos />} />
-
         <Route path="/turnos/nuevo" element={<FormularioTurno />} />
         <Route path="/turnos/:id/editar" element={<FormularioTurno />} />
-
+        <Route path="/sesiones/nueva/:idTurno" element={<FormularioSesion />} />
         <Route path="/pagos" element={<Pagos />} />
         <Route path="/reportes" element={<Reportes />} />
         <Route path="/terapeutas" element={<Terapeutas />} />
@@ -60,7 +61,10 @@ function App() {
           element={<FormularioTerapeuta />}
         />
       </Route>
-
+      <Route
+        path="/pacientes/:idPaciente/historial"
+        element={<HistorialPaciente />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

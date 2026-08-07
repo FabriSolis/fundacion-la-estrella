@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+
 import {
   AppBar,
   Avatar,
@@ -14,11 +15,11 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import SchoolIcon from "@mui/icons-material/School";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -30,19 +31,51 @@ import MenuIcon from "@mui/icons-material/Menu";
 const drawerWidth = 250;
 
 const opciones = [
-  { texto: "Dashboard", icono: <DashboardIcon />, ruta: "/dashboard" },
-  { texto: "Usuarios", icono: <PeopleIcon />, ruta: "/usuarios" },
-  { texto: "Pacientes", icono: <FavoriteIcon />, ruta: "/pacientes" },
+  {
+    texto: "Dashboard",
+    icono: <DashboardIcon />,
+    ruta: "/dashboard",
+  },
+  {
+    texto: "Usuarios",
+    icono: <PeopleIcon />,
+    ruta: "/usuarios",
+  },
+  {
+    texto: "Pacientes",
+    icono: <FavoriteIcon />,
+    ruta: "/pacientes",
+  },
   {
     texto: "Terapeutas",
     icono: <MedicalServicesIcon />,
     ruta: "/terapeutas",
   },
-  { texto: "Alumnos", icono: <SchoolIcon />, ruta: "/alumnos" },
-  { texto: "Cursos", icono: <MenuBookIcon />, ruta: "/cursos" },
-  { texto: "Turnos", icono: <CalendarMonthIcon />, ruta: "/turnos" },
-  { texto: "Pagos", icono: <PaymentsIcon />, ruta: "/pagos" },
-  { texto: "Reportes", icono: <BarChartIcon />, ruta: "/reportes" },
+  {
+    texto: "Alumnos",
+    icono: <SchoolIcon />,
+    ruta: "/alumnos",
+  },
+  {
+    texto: "Cursos",
+    icono: <MenuBookIcon />,
+    ruta: "/cursos",
+  },
+  {
+    texto: "Turnos",
+    icono: <CalendarMonthIcon />,
+    ruta: "/turnos",
+  },
+  {
+    texto: "Pagos",
+    icono: <PaymentsIcon />,
+    ruta: "/pagos",
+  },
+  {
+    texto: "Reportes",
+    icono: <BarChartIcon />,
+    ruta: "/reportes",
+  },
 ];
 
 function MainLayout() {
@@ -130,7 +163,10 @@ function MainLayout() {
             color="inherit"
             edge="start"
             onClick={() => setMenuAbierto(true)}
-            sx={{ mr: 2, display: { md: "none" } }}
+            sx={{
+              mr: 2,
+              display: { md: "none" },
+            }}
           >
             <MenuIcon />
           </IconButton>

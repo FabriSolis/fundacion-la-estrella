@@ -180,7 +180,14 @@ function AgendaTurnos({ turnos = [] }) {
 
         <DialogActions>
           <Button onClick={cerrarModal}>Cerrar</Button>
-
+          <Button
+            variant="contained"
+            color="success"
+            disabled={turnoSeleccionado?.estado === "realizado"}
+            onClick={() => navigate(`/sesiones/nueva/${turnoSeleccionado.id}`)}
+          >
+            Registrar sesión
+          </Button>
           <Button
             variant="contained"
             onClick={() => {

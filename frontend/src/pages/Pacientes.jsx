@@ -211,7 +211,15 @@ function Pacientes() {
                     >
                       Editar
                     </Button>
-
+                    <Button
+                      size="small"
+                      color="secondary"
+                      onClick={() =>
+                        navigate(`/pacientes/${paciente.id_paciente}/historial`)
+                      }
+                    >
+                      Historial
+                    </Button>
                     <Button
                       size="small"
                       color={paciente.estado === "activo" ? "error" : "success"}
