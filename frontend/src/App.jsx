@@ -18,6 +18,9 @@ import MainLayout from "./layouts/MainLayout";
 import FormularioSesion from "./pages/FormularioSesion";
 import HistorialPaciente from "./pages/HistorialPaciente";
 import FormularioAlumno from "./pages/FormularioAlumno";
+import FormularioCurso from "./pages/FormularioCurso";
+import Docentes from "./pages/Docentes";
+import FormularioDocente from "./pages/FormularioDocente";
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
@@ -61,17 +64,22 @@ function App() {
           path="/terapeutas/:id/editar"
           element={<FormularioTerapeuta />}
         />
+        <Route
+          path="/pacientes/:idPaciente/historial"
+          element={<HistorialPaciente />}
+        />
+        <Route path="/cursos/nuevo" element={<FormularioCurso />} />
+        <Route path="/cursos/:id/editar" element={<FormularioCurso />} />
+        <Route path="/alumnos" element={<Alumnos />} />
+
+        <Route path="/alumnos/nuevo" element={<FormularioAlumno />} />
+
+        <Route path="/alumnos/:id/editar" element={<FormularioAlumno />} />
+        <Route path="/docentes" element={<Docentes />} />
+        <Route path="/docentes/nuevo" element={<FormularioDocente />} />
+        <Route path="/docentes/:id/editar" element={<FormularioDocente />} />
       </Route>
-      <Route
-        path="/pacientes/:idPaciente/historial"
-        element={<HistorialPaciente />}
-      />
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/alumnos" element={<Alumnos />} />
-
-      <Route path="/alumnos/nuevo" element={<FormularioAlumno />} />
-
-      <Route path="/alumnos/:id/editar" element={<FormularioAlumno />} />
     </Routes>
   );
 }

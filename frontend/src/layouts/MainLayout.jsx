@@ -31,29 +31,22 @@ import MenuIcon from "@mui/icons-material/Menu";
 const drawerWidth = 250;
 
 const opciones = [
-  {
-    texto: "Dashboard",
-    icono: <DashboardIcon />,
-    ruta: "/dashboard",
-  },
-  {
-    texto: "Usuarios",
-    icono: <PeopleIcon />,
-    ruta: "/usuarios",
-  },
-  {
-    texto: "Pacientes",
-    icono: <FavoriteIcon />,
-    ruta: "/pacientes",
-  },
+  { texto: "Dashboard", icono: <DashboardIcon />, ruta: "/dashboard" },
+  { texto: "Usuarios", icono: <PeopleIcon />, ruta: "/usuarios" },
+  { texto: "Pacientes", icono: <FavoriteIcon />, ruta: "/pacientes" },
   {
     texto: "Terapeutas",
     icono: <MedicalServicesIcon />,
     ruta: "/terapeutas",
   },
   {
-    texto: "Alumnos",
+    texto: "Docentes",
     icono: <SchoolIcon />,
+    ruta: "/docentes",
+  },
+  {
+    texto: "Alumnos",
+    icono: <PeopleIcon />,
     ruta: "/alumnos",
   },
   {

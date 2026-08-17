@@ -10,6 +10,8 @@ const terapeutaRoutes = require("./routes/terapeutaRoutes");
 const turnoRoutes = require("./routes/turnoRoutes");
 const sesionRoutes = require("./routes/sesionRoutes");
 const alumnoRoutes = require("./routes/alumnoRoutes");
+const cursoRoutes = require("./routes/cursoRoutes");
+const docenteRoutes = require("./routes/docenteRoutes");
 
 const app = express();
 
@@ -31,5 +33,7 @@ app.use("/api/terapeutas", terapeutaRoutes);
 app.use("/api/turnos", turnoRoutes);
 app.use("/api/sesiones", sesionRoutes);
 app.use("/api/alumnos", alumnoRoutes);
+app.use("/api/cursos", cursoRoutes);
+app.use("/api/docentes", docenteRoutes);
 
 module.exports = app;
