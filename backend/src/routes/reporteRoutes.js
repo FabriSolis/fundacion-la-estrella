@@ -6,6 +6,8 @@ const {
   obtenerTurnosPorEstado,
   obtenerInscripcionesPorCurso,
   obtenerAsistenciaPorCurso,
+  obtenerClasesPorCurso,
+  obtenerAsistenciaPorClase,
 } = require("../controllers/reporteController");
 
 const { verificarToken } = require("../middleware/auth");
@@ -43,6 +45,18 @@ router.get(
   "/asistencia-curso",
   verificarRol("Administrador", "Asistente Administrativo", "Docente"),
   obtenerAsistenciaPorCurso,
+);
+
+router.get(
+  "/clases-curso/:idCurso",
+  verificarRol("Administrador", "Asistente Administrativo", "Docente"),
+  obtenerClasesPorCurso,
+);
+
+router.get(
+  "/asistencia-clase/:idClase",
+  verificarRol("Administrador", "Asistente Administrativo", "Docente"),
+  obtenerAsistenciaPorClase,
 );
 
 module.exports = router;
