@@ -26,6 +26,7 @@ import FormularioInscripcion from "./pages/FormularioInscripcion";
 import Clases from "./pages/Clases";
 import FormularioClase from "./pages/FormularioClase";
 import TomarAsistencia from "./pages/TomarAsistencia";
+import FormularioPago from "./pages/FormularioPago";
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
@@ -96,6 +97,11 @@ function App() {
           path="/clases/:idClase/asistencia"
           element={<TomarAsistencia />}
         />
+        <Route path="/pagos" element={<Pagos />} />
+
+        <Route path="/pagos/nuevo" element={<FormularioPago />} />
+
+        <Route path="/pagos/:id/editar" element={<FormularioPago />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
