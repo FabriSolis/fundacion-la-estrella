@@ -54,10 +54,16 @@ const opciones = [
     icono: <MenuBookIcon />,
     ruta: "/cursos",
   },
+
   {
     texto: "Inscripciones",
     icono: <SchoolIcon />,
     ruta: "/inscripciones",
+  },
+  {
+    texto: "Clases",
+    icono: <CalendarMonthIcon />,
+    ruta: "/clases",
   },
   {
     texto: "Turnos",

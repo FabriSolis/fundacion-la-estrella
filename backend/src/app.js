@@ -13,6 +13,8 @@ const alumnoRoutes = require("./routes/alumnoRoutes");
 const cursoRoutes = require("./routes/cursoRoutes");
 const docenteRoutes = require("./routes/docenteRoutes");
 const inscripcionRoutes = require("./routes/inscripcionRoutes");
+const claseRoutes = require("./routes/claseRoutes");
+const asistenciaRoutes = require("./routes/asistenciaRoutes");
 
 const app = express();
 
@@ -37,5 +39,7 @@ app.use("/api/alumnos", alumnoRoutes);
 app.use("/api/cursos", cursoRoutes);
 app.use("/api/docentes", docenteRoutes);
 app.use("/api/inscripciones", inscripcionRoutes);
+app.use("/api/clases", claseRoutes);
+app.use("/api/asistencias", asistenciaRoutes);
 
 module.exports = app;

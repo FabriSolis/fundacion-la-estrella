@@ -23,6 +23,9 @@ import Docentes from "./pages/Docentes";
 import FormularioDocente from "./pages/FormularioDocente";
 import Inscripciones from "./pages/Inscripciones";
 import FormularioInscripcion from "./pages/FormularioInscripcion";
+import Clases from "./pages/Clases";
+import FormularioClase from "./pages/FormularioClase";
+import TomarAsistencia from "./pages/TomarAsistencia";
 
 function RutaProtegida({ children }) {
   const token = localStorage.getItem("token");
@@ -83,6 +86,15 @@ function App() {
         <Route
           path="/inscripciones/nueva"
           element={<FormularioInscripcion />}
+        />
+        <Route path="/clases" element={<Clases />} />
+
+        <Route path="/clases/nueva" element={<FormularioClase />} />
+
+        <Route path="/clases/:id/editar" element={<FormularioClase />} />
+        <Route
+          path="/clases/:idClase/asistencia"
+          element={<TomarAsistencia />}
         />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
