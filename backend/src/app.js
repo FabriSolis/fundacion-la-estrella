@@ -12,6 +12,7 @@ const sesionRoutes = require("./routes/sesionRoutes");
 const alumnoRoutes = require("./routes/alumnoRoutes");
 const cursoRoutes = require("./routes/cursoRoutes");
 const docenteRoutes = require("./routes/docenteRoutes");
+const inscripcionRoutes = require("./routes/inscripcionRoutes");
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use("/api/sesiones", sesionRoutes);
 app.use("/api/alumnos", alumnoRoutes);
 app.use("/api/cursos", cursoRoutes);
 app.use("/api/docentes", docenteRoutes);
+app.use("/api/inscripciones", inscripcionRoutes);
 
 module.exports = app;

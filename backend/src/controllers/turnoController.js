@@ -380,7 +380,13 @@ async function actualizarTurno(req, res) {
         mensaje: "Estado de turno inválido",
       });
     }
+    const horaConvertida = convertirHora(hora);
 
+    if (!horaConvertida) {
+      return res.status(400).json({
+        mensaje: "La hora ingresada no tiene un formato válido",
+      });
+    }
     const pool = await conectarBaseDeDatos();
 
     const conflicto = await pool
@@ -389,7 +395,7 @@ async function actualizarTurno(req, res) {
       .input("idPaciente", sql.Int, Number(idPaciente))
       .input("idTerapeuta", sql.Int, Number(idTerapeuta))
       .input("fecha", sql.Date, fecha)
-      .input("hora", sql.Time, hora).query(`
+      .input("hora", sql.Time, horaConvertida).query(`
         SELECT id_turno
         FROM Turno
         WHERE id_turno <> @idTurno
@@ -415,7 +421,7 @@ async function actualizarTurno(req, res) {
       .input("idPaciente", sql.Int, Number(idPaciente))
       .input("idTerapeuta", sql.Int, Number(idTerapeuta))
       .input("fecha", sql.Date, fecha)
-      .input("hora", sql.Time, hora)
+      .input("hora", sql.Time, horaConvertida)
       .input("modalidad", sql.VarChar(20), modalidad)
       .input("estado", sql.VarChar(20), estado)
       .input("motivoConsulta", sql.VarChar(255), motivoConsulta || null)
