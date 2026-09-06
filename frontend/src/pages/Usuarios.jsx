@@ -34,28 +34,24 @@ function Usuarios() {
   const [mensaje, setMensaje] = useState("");
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
-
   const [abiertoConfirmacion, setAbiertoConfirmacion] = useState(false);
-
   const [procesando, setProcesando] = useState(false);
 
-  async function cargarUsuarios() {
-    try {
-      setError("");
-
-      const respuesta = await api.get("/usuarios");
-
-      setUsuarios(respuesta.data);
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje || "No se pudieron cargar los usuarios",
-      );
-    } finally {
-      setCargando(false);
-    }
-  }
-
   useEffect(() => {
+    async function cargarUsuarios() {
+      try {
+        const respuesta = await api.get("/usuarios");
+
+        setUsuarios(respuesta.data);
+      } catch (error) {
+        setError(
+          error.response?.data?.mensaje || "No se pudieron cargar los usuarios",
+        );
+      } finally {
+        setCargando(false);
+      }
+    }
+
     cargarUsuarios();
   }, []);
 
@@ -103,7 +99,8 @@ function Usuarios() {
       setAbiertoConfirmacion(false);
       setUsuarioSeleccionado(null);
 
-      await cargarUsuarios();
+      const respuesta = await api.get("/usuarios");
+      setUsuarios(respuesta.data);
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
@@ -189,19 +186,12 @@ function Usuarios() {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-
                 <TableCell>Nombre y apellido</TableCell>
-
                 <TableCell>DNI</TableCell>
-
                 <TableCell>Email</TableCell>
-
                 <TableCell>Teléfono</TableCell>
-
                 <TableCell>Rol</TableCell>
-
                 <TableCell>Estado</TableCell>
-
                 <TableCell align="center">Acciones</TableCell>
               </TableRow>
             </TableHead>
