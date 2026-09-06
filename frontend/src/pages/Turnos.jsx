@@ -184,14 +184,50 @@ function Turnos() {
                   </TableCell>
 
                   <TableCell align="center">
-                    <Button
-                      size="small"
-                      onClick={() =>
-                        navigate(`/turnos/${turno.id_turno}/editar`)
-                      }
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        justifyContent: "center",
+                        flexWrap: "wrap",
+                      }}
                     >
-                      Editar
-                    </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          navigate(`/turnos/${turno.id_turno}/editar`)
+                        }
+                      >
+                        Editar
+                      </Button>
+
+                      {turno.estado !== "cancelado" &&
+                        turno.estado !== "realizado" && (
+                          <Button
+                            size="small"
+                            color="success"
+                            variant="contained"
+                            onClick={() =>
+                              navigate(`/turnos/${turno.id_turno}/sesion`)
+                            }
+                          >
+                            Registrar sesión
+                          </Button>
+                        )}
+
+                      {turno.estado === "realizado" && (
+                        <Button
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          onClick={() =>
+                            navigate(`/turnos/${turno.id_turno}/sesion`)
+                          }
+                        >
+                          Ver sesión
+                        </Button>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

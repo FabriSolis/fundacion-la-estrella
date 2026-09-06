@@ -25,6 +25,9 @@ function Inscripciones() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const parametros = new URLSearchParams(location.search);
+  const idAlumnoFiltro = parametros.get("alumno");
+
   const [inscripciones, setInscripciones] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
@@ -51,13 +54,22 @@ function Inscripciones() {
   }, []);
 
   const inscripcionesFiltradas = useMemo(() => {
+    let resultado = [...inscripciones];
+
+    if (idAlumnoFiltro) {
+      resultado = resultado.filter(
+        (inscripcion) =>
+          String(inscripcion.id_alumno) === String(idAlumnoFiltro),
+      );
+    }
+
     const texto = busqueda.trim().toLowerCase();
 
     if (!texto) {
-      return inscripciones;
+      return resultado;
     }
 
-    return inscripciones.filter((inscripcion) => {
+    return resultado.filter((inscripcion) => {
       const alumno =
         `${inscripcion.alumno_nombre} ${inscripcion.alumno_apellido}`.toLowerCase();
 
@@ -69,7 +81,7 @@ function Inscripciones() {
         inscripcion.estado?.toLowerCase().includes(texto)
       );
     });
-  }, [inscripciones, busqueda]);
+  }, [inscripciones, busqueda, idAlumnoFiltro]);
 
   function formatearFecha(fecha) {
     if (!fecha) return "-";
@@ -107,6 +119,8 @@ function Inscripciones() {
     if (!confirmar) return;
 
     try {
+      setError("");
+
       await api.patch(`/inscripciones/${inscripcion.id_inscripcion}/estado`, {
         estado: nuevoEstado,
       });
@@ -157,14 +171,34 @@ function Inscripciones() {
           <Typography color="text.secondary">
             Inscripción de alumnos a los cursos disponibles.
           </Typography>
+
+          {idAlumnoFiltro && (
+            <Typography
+              sx={{
+                mt: 1,
+                color: "secondary.main",
+                fontWeight: 600,
+              }}
+            >
+              Mostrando únicamente los cursos del alumno seleccionado.
+            </Typography>
+          )}
         </Box>
 
-        <Button
-          variant="contained"
-          onClick={() => navigate("/inscripciones/nueva")}
-        >
-          Nueva inscripción
-        </Button>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          {idAlumnoFiltro && (
+            <Button variant="outlined" onClick={() => navigate("/alumnos")}>
+              Volver a alumnos
+            </Button>
+          )}
+
+          <Button
+            variant="contained"
+            onClick={() => navigate("/inscripciones/nueva")}
+          >
+            Nueva inscripción
+          </Button>
+        </Stack>
       </Stack>
 
       <TextField
@@ -230,46 +264,55 @@ function Inscripciones() {
                 </TableCell>
 
                 <TableCell align="center">
-                  {inscripcion.estado === "pendiente" && (
-                    <Button
-                      size="small"
-                      color="success"
-                      onClick={() => cambiarEstado(inscripcion, "confirmada")}
-                    >
-                      Confirmar
-                    </Button>
-                  )}
-
-                  {(inscripcion.estado === "confirmada" ||
-                    inscripcion.estado === "pendiente") && (
-                    <Button
-                      size="small"
-                      color="info"
-                      onClick={() => cambiarEstado(inscripcion, "en curso")}
-                    >
-                      Iniciar
-                    </Button>
-                  )}
-
-                  {inscripcion.estado === "en curso" && (
-                    <Button
-                      size="small"
-                      onClick={() => cambiarEstado(inscripcion, "finalizada")}
-                    >
-                      Finalizar
-                    </Button>
-                  )}
-
-                  {inscripcion.estado !== "cancelada" &&
-                    inscripcion.estado !== "finalizada" && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    justifyContent="center"
+                    flexWrap="wrap"
+                  >
+                    {inscripcion.estado === "pendiente" && (
                       <Button
                         size="small"
-                        color="error"
-                        onClick={() => cambiarEstado(inscripcion, "cancelada")}
+                        color="success"
+                        onClick={() => cambiarEstado(inscripcion, "confirmada")}
                       >
-                        Cancelar
+                        Confirmar
                       </Button>
                     )}
+
+                    {(inscripcion.estado === "confirmada" ||
+                      inscripcion.estado === "pendiente") && (
+                      <Button
+                        size="small"
+                        color="info"
+                        onClick={() => cambiarEstado(inscripcion, "en curso")}
+                      >
+                        Iniciar
+                      </Button>
+                    )}
+
+                    {inscripcion.estado === "en curso" && (
+                      <Button
+                        size="small"
+                        onClick={() => cambiarEstado(inscripcion, "finalizada")}
+                      >
+                        Finalizar
+                      </Button>
+                    )}
+
+                    {inscripcion.estado !== "cancelada" &&
+                      inscripcion.estado !== "finalizada" && (
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() =>
+                            cambiarEstado(inscripcion, "cancelada")
+                          }
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -277,7 +320,9 @@ function Inscripciones() {
             {inscripcionesFiltradas.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} align="center">
-                  No se encontraron inscripciones.
+                  {idAlumnoFiltro
+                    ? "Este alumno no tiene cursos inscriptos."
+                    : "No se encontraron inscripciones."}
                 </TableCell>
               </TableRow>
             )}

@@ -61,7 +61,7 @@ function App() {
         <Route path="/turnos" element={<Turnos />} />
         <Route path="/turnos/nuevo" element={<FormularioTurno />} />
         <Route path="/turnos/:id/editar" element={<FormularioTurno />} />
-        <Route path="/sesiones/nueva/:idTurno" element={<FormularioSesion />} />
+        <Route path="/turnos/:idTurno/sesion" element={<FormularioSesion />} />
         <Route path="/pagos" element={<Pagos />} />
         <Route path="/reportes" element={<Reportes />} />
         <Route path="/terapeutas" element={<Terapeutas />} />

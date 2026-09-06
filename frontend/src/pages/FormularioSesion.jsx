@@ -18,6 +18,8 @@ function FormularioSesion() {
   const { idTurno } = useParams();
 
   const [turno, setTurno] = useState(null);
+  const [idSesion, setIdSesion] = useState(null);
+
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -29,23 +31,41 @@ function FormularioSesion() {
   });
 
   useEffect(() => {
-    async function cargarTurno() {
+    async function cargarDatos() {
       try {
         setError("");
 
-        const respuesta = await api.get(`/turnos/${idTurno}`);
-        setTurno(respuesta.data);
+        const respuestaTurno = await api.get(`/turnos/${idTurno}`);
+        setTurno(respuestaTurno.data);
+
+        try {
+          const respuestaSesion = await api.get(`/sesiones/turno/${idTurno}`);
+
+          const sesion = respuestaSesion.data;
+
+          setIdSesion(sesion.id_sesion);
+
+          setFormulario({
+            evolucion: sesion.evolucion || "",
+            observaciones: sesion.observaciones || "",
+            recomendaciones: sesion.recomendaciones || "",
+          });
+        } catch (errorSesion) {
+          if (errorSesion.response?.status !== 404) {
+            throw errorSesion;
+          }
+        }
       } catch (error) {
         setError(
           error.response?.data?.mensaje ||
-            "No se pudieron cargar los datos del turno",
+            "No se pudieron cargar los datos de la sesión",
         );
       } finally {
         setCargando(false);
       }
     }
 
-    cargarTurno();
+    cargarDatos();
   }, [idTurno]);
 
   const manejarCambio = (evento) => {
@@ -59,6 +79,7 @@ function FormularioSesion() {
 
   const manejarEnvio = async (evento) => {
     evento.preventDefault();
+
     setError("");
 
     if (
@@ -73,23 +94,35 @@ function FormularioSesion() {
     try {
       setGuardando(true);
 
-      await api.post("/sesiones", {
-        idTurno: Number(idTurno),
-        evolucion: formulario.evolucion,
-        observaciones: formulario.observaciones,
-        recomendaciones: formulario.recomendaciones,
-      });
+      if (idSesion) {
+        await api.put(`/sesiones/${idSesion}`, {
+          evolucion: formulario.evolucion,
+          observaciones: formulario.observaciones,
+          recomendaciones: formulario.recomendaciones,
+        });
 
-      navigate("/turnos", {
-        state: {
-          mensaje:
-            "Sesión registrada correctamente y turno marcado como realizado",
-        },
-      });
+        navigate("/turnos", {
+          state: {
+            mensaje: "Sesión actualizada correctamente",
+          },
+        });
+      } else {
+        await api.post("/sesiones", {
+          idTurno: Number(idTurno),
+          evolucion: formulario.evolucion,
+          observaciones: formulario.observaciones,
+          recomendaciones: formulario.recomendaciones,
+        });
+
+        navigate("/turnos", {
+          state: {
+            mensaje:
+              "Sesión registrada correctamente y turno marcado como realizado",
+          },
+        });
+      }
     } catch (error) {
-      setError(
-        error.response?.data?.mensaje || "No se pudo registrar la sesión",
-      );
+      setError(error.response?.data?.mensaje || "No se pudo guardar la sesión");
     } finally {
       setGuardando(false);
     }
@@ -118,12 +151,15 @@ function FormularioSesion() {
       }}
     >
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Registrar sesión terapéutica
+        {idSesion
+          ? "Ver / editar sesión terapéutica"
+          : "Registrar sesión terapéutica"}
       </Typography>
 
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Registrá la evolución, las observaciones y las recomendaciones
-        correspondientes a la sesión.
+        {idSesion
+          ? "Consultá o modificá la información registrada en la sesión."
+          : "Registrá la evolución, las observaciones y las recomendaciones correspondientes a la sesión."}
       </Typography>
 
       {error && (
@@ -172,7 +208,7 @@ function FormularioSesion() {
             </Typography>
 
             <Typography>
-              <strong>Estado actual:</strong> {turno.estado}
+              <strong>Estado:</strong> {turno.estado}
             </Typography>
           </Stack>
         </Paper>
@@ -216,7 +252,7 @@ function FormularioSesion() {
               onClick={() => navigate("/turnos")}
               disabled={guardando}
             >
-              Cancelar
+              Volver
             </Button>
 
             <Button
@@ -227,6 +263,8 @@ function FormularioSesion() {
             >
               {guardando ? (
                 <CircularProgress size={24} color="inherit" />
+              ) : idSesion ? (
+                "Actualizar sesión"
               ) : (
                 "Guardar sesión"
               )}

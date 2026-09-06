@@ -223,7 +223,13 @@ function Alumnos() {
                     Editar
                   </Button>
 
-                  <Button size="small" color="secondary" disabled>
+                  <Button
+                    size="small"
+                    color="secondary"
+                    onClick={() =>
+                      navigate(`/inscripciones?alumno=${alumno.id_alumno}`)
+                    }
+                  >
                     Cursos
                   </Button>
 
