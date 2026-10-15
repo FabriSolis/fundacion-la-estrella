@@ -156,6 +156,8 @@ async function crearPago(req, res) {
     }
 
     const montoNumero = Number(monto);
+    console.log("Monto recibido:", monto);
+    console.log("Monto convertido:", montoNumero);
 
     if (!Number.isFinite(montoNumero) || montoNumero <= 0) {
       return res.status(400).json({
