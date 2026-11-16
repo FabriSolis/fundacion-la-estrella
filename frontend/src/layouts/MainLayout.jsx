@@ -27,39 +27,43 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
+
 import logoEstrella from "../assets/logoestrella.png";
+
+import {
+  ROLES,
+  obtenerRol,
+  obtenerUsuario,
+  rutaInicial,
+} from "../config/permisos";
+
 const drawerWidth = 250;
 
-const seccionesMenu = [
-  {
-    titulo: "GENERAL",
-    color: "#2563eb",
-    opciones: [
-      {
-        texto: "Dashboard",
-        icono: <DashboardIcon />,
-        ruta: "/dashboard",
-      },
-    ],
-  },
+const ADMIN = ROLES.ADMIN;
+const ASISTENTE = ROLES.ASISTENTE;
+
+const secciones = [
   {
     titulo: "ÁREA TERAPÉUTICA",
     color: "#7c3aed",
     opciones: [
       {
         texto: "Pacientes",
-        icono: <FavoriteIcon />,
         ruta: "/pacientes",
+        icono: FavoriteIcon,
+        roles: [ADMIN, ASISTENTE],
       },
       {
         texto: "Terapeutas",
-        icono: <MedicalServicesIcon />,
         ruta: "/terapeutas",
+        icono: MedicalServicesIcon,
+        roles: [ADMIN],
       },
       {
         texto: "Turnos",
-        icono: <CalendarMonthIcon />,
         ruta: "/turnos",
+        icono: CalendarMonthIcon,
+        roles: [ADMIN, ASISTENTE],
       },
     ],
   },
@@ -69,28 +73,33 @@ const seccionesMenu = [
     opciones: [
       {
         texto: "Alumnos",
-        icono: <PeopleIcon />,
         ruta: "/alumnos",
+        icono: PeopleIcon,
+        roles: [ADMIN, ASISTENTE],
       },
       {
         texto: "Docentes",
-        icono: <SchoolIcon />,
         ruta: "/docentes",
+        icono: SchoolIcon,
+        roles: [ADMIN],
       },
       {
         texto: "Cursos",
-        icono: <MenuBookIcon />,
         ruta: "/cursos",
+        icono: MenuBookIcon,
+        roles: [ADMIN, ASISTENTE],
       },
       {
         texto: "Inscripciones",
-        icono: <SchoolIcon />,
         ruta: "/inscripciones",
+        icono: SchoolIcon,
+        roles: [ADMIN, ASISTENTE],
       },
       {
         texto: "Clases",
-        icono: <CalendarMonthIcon />,
         ruta: "/clases",
+        icono: CalendarMonthIcon,
+        roles: [ADMIN, ASISTENTE],
       },
     ],
   },
@@ -100,22 +109,34 @@ const seccionesMenu = [
     opciones: [
       {
         texto: "Usuarios",
-        icono: <PeopleIcon />,
         ruta: "/usuarios",
+        icono: PeopleIcon,
+        roles: [ADMIN],
       },
       {
         texto: "Pagos",
-        icono: <PaymentsIcon />,
         ruta: "/pagos",
+        icono: PaymentsIcon,
+        roles: [ADMIN, ASISTENTE],
       },
       {
         texto: "Reportes",
-        icono: <BarChartIcon />,
         ruta: "/reportes",
+        icono: BarChartIcon,
+        roles: [ADMIN],
       },
     ],
   },
 ];
+
+const nombresPanel = {
+  [ROLES.ADMIN]: "Panel administrativo",
+  [ROLES.ASISTENTE]: "Panel de administración",
+  [ROLES.DOCENTE]: "Panel del docente",
+  [ROLES.TERAPEUTA]: "Panel del terapeuta",
+  [ROLES.ALUMNO]: "Panel del alumno",
+  [ROLES.PACIENTE]: "Panel del paciente",
+};
 
 function MainLayout() {
   const navigate = useNavigate();
@@ -123,20 +144,42 @@ function MainLayout() {
 
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+  const usuario = obtenerUsuario() || {};
+  const rol = obtenerRol();
+
+  const menu = [
+    {
+      titulo: "GENERAL",
+      color: "#2563eb",
+      opciones: [
+        {
+          texto: rol === ADMIN ? "Dashboard" : "Mi panel",
+          ruta: rutaInicial(),
+          icono: DashboardIcon,
+        },
+      ],
+    },
+    ...secciones
+      .map((seccion) => ({
+        ...seccion,
+        opciones: seccion.opciones.filter((opcion) =>
+          opcion.roles.includes(rol),
+        ),
+      }))
+      .filter((seccion) => seccion.opciones.length > 0),
+  ];
 
   const cerrarSesion = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const contenidoMenu = (
     <Box>
       <Box
         sx={{
-          px: 2,
-          py: 2.5,
+          p: 2,
           display: "flex",
           alignItems: "center",
           gap: 1.5,
@@ -145,35 +188,16 @@ function MainLayout() {
         <Box
           component="img"
           src={logoEstrella}
-          alt="Logo Fundación La Estrella"
-          sx={{
-            width: 55,
-            height: 55,
-            objectFit: "contain",
-            flexShrink: 0,
-          }}
+          alt="Fundación La Estrella"
+          sx={{ width: 55, height: 55, objectFit: "contain" }}
         />
 
         <Box>
-          <Typography
-            fontWeight="bold"
-            sx={{
-              fontSize: 16,
-              lineHeight: 1.2,
-              color: "#111827",
-            }}
-          >
+          <Typography fontWeight={700} fontSize={15}>
             Fundación La Estrella
           </Typography>
 
-          <Typography
-            sx={{
-              fontSize: 11,
-              color: "#6b7280",
-              mt: 0.4,
-              lineHeight: 1.3,
-            }}
-          >
+          <Typography fontSize={11} color="text.secondary">
             Sistema Integral de Gestión
           </Typography>
         </Box>
@@ -181,88 +205,69 @@ function MainLayout() {
 
       <Divider />
 
-      <Box sx={{ py: 1 }}>
-        {seccionesMenu.map((seccion) => (
-          <Box key={seccion.titulo} sx={{ mb: 1.5 }}>
-            <Typography
-              sx={{
-                px: 2,
-                pt: 1.5,
-                pb: 0.8,
-                fontSize: 12,
-                fontWeight: 700,
-                color: seccion.color,
-                letterSpacing: 0.6,
-                borderLeft: `4px solid ${seccion.color}`,
-                ml: 1,
-              }}
-            >
-              {seccion.titulo}
-            </Typography>
+      {menu.map((seccion) => (
+        <Box key={seccion.titulo} sx={{ mt: 2 }}>
+          <Typography
+            sx={{
+              px: 2,
+              fontSize: 11,
+              fontWeight: 700,
+              color: seccion.color,
+            }}
+          >
+            {seccion.titulo}
+          </Typography>
 
-            <List sx={{ px: 1, py: 0.5 }}>
-              {seccion.opciones.map((opcion) => {
-                const activo =
-                  location.pathname === opcion.ruta ||
-                  location.pathname.startsWith(`${opcion.ruta}/`);
+          <List sx={{ px: 1 }}>
+            {seccion.opciones.map((opcion) => {
+              const Icono = opcion.icono;
 
-                return (
-                  <ListItemButton
-                    key={opcion.texto}
-                    selected={activo}
-                    onClick={() => {
-                      navigate(opcion.ruta);
-                      setMenuAbierto(false);
-                    }}
+              const activo =
+                location.pathname === opcion.ruta ||
+                location.pathname.startsWith(`${opcion.ruta}/`);
+
+              return (
+                <ListItemButton
+                  key={opcion.ruta}
+                  selected={activo}
+                  onClick={() => {
+                    navigate(opcion.ruta);
+                    setMenuAbierto(false);
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    mb: 0.5,
+                    "&.Mui-selected": {
+                      backgroundColor: `${seccion.color}18`,
+                      color: seccion.color,
+                    },
+                  }}
+                >
+                  <ListItemIcon
                     sx={{
-                      borderRadius: 2,
-                      mb: 0.5,
-
-                      "& .MuiListItemIcon-root": {
-                        color: activo ? seccion.color : "#6b7280",
-                      },
-
-                      "&.Mui-selected": {
-                        backgroundColor: `${seccion.color}18`,
-                        color: seccion.color,
-                      },
-
-                      "&.Mui-selected:hover": {
-                        backgroundColor: `${seccion.color}24`,
-                      },
-
-                      "&:hover": {
-                        backgroundColor: "#f3f4f6",
-                      },
+                      minWidth: 40,
+                      color: activo ? seccion.color : "#6b7280",
                     }}
                   >
-                    <ListItemIcon>{opcion.icono}</ListItemIcon>
+                    <Icono />
+                  </ListItemIcon>
 
-                    <ListItemText
-                      primary={opcion.texto}
-                      primaryTypographyProps={{
-                        fontWeight: activo ? 600 : 400,
-                      }}
-                    />
-                  </ListItemButton>
-                );
-              })}
-            </List>
-          </Box>
-        ))}
-      </Box>
+                  <ListItemText primary={opcion.texto} />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Box>
+      ))}
 
-      <Divider />
+      <Divider sx={{ my: 2 }} />
 
       <List sx={{ px: 1 }}>
         <ListItemButton
           onClick={cerrarSesion}
-          sx={{
-            borderRadius: 2,
-            color: "error.main",
-          }}
+          sx={{ borderRadius: 2, color: "error.main" }}
         >
-          <ListItemIcon>
+          <ListItemIcon sx={{ minWidth: 40 }}>
             <LogoutIcon color="error" />
           </ListItemIcon>
 
@@ -278,40 +283,33 @@ function MainLayout() {
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          ml: { md: `${drawerWidth}px` },
           width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
       >
         <Toolbar>
           <IconButton
             color="inherit"
-            edge="start"
             onClick={() => setMenuAbierto(true)}
-            sx={{
-              mr: 2,
-              display: { md: "none" },
-            }}
+            sx={{ mr: 2, display: { md: "none" } }}
           >
             <MenuIcon />
           </IconButton>
 
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Panel administrativo
+            {nombresPanel[rol] || "Mi panel"}
           </Typography>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box sx={{ textAlign: "right" }}>
-              <Typography variant="body2" fontWeight="bold">
+              <Typography variant="body2" fontWeight={700}>
                 {usuario.nombre} {usuario.apellido}
               </Typography>
 
-              <Typography variant="caption">{usuario.rol}</Typography>
+              <Typography variant="caption">
+                {usuario.rol?.nombre_rol ||
+                  usuario.rol?.nombre ||
+                  (typeof usuario.rol === "string" ? usuario.rol : rol)}
+              </Typography>
             </Box>
 
             <Avatar>{usuario.nombre?.charAt(0) || "U"}</Avatar>
@@ -325,9 +323,7 @@ function MainLayout() {
         onClose={() => setMenuAbierto(false)}
         sx={{
           display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-          },
+          "& .MuiDrawer-paper": { width: drawerWidth },
         }}
       >
         {contenidoMenu}
@@ -353,27 +349,13 @@ function MainLayout() {
         sx={{
           flexGrow: 1,
           minWidth: 0,
-          minHeight: "100vh",
           bgcolor: "#f6f8fc",
-          width: {
-            xs: "100%",
-            md: `calc(100% - ${drawerWidth}px)`,
-          },
+          minHeight: "100vh",
         }}
       >
         <Toolbar />
 
-        <Box
-          sx={{
-            width: "100%",
-            boxSizing: "border-box",
-            px: {
-              xs: 2,
-              md: 3,
-            },
-            py: 3,
-          }}
-        >
+        <Box sx={{ p: { xs: 2, md: 3 } }}>
           <Outlet />
         </Box>
       </Box>
