@@ -4,7 +4,7 @@ const ESTADOS_PERMITIDOS = ["programada", "dictada", "suspendida", "cancelada"];
 
 const MODALIDADES_PERMITIDAS = ["presencial", "virtual", "mixta"];
 
-// Consulta común para evitar repetir código
+// Consulta compartida para evitar repetir código
 const CONSULTA_CLASES = `
   SELECT
     cl.id_clase,
@@ -190,6 +190,48 @@ async function listarMisClases(req, res) {
     return res.json(resultado.recordset);
   } catch (error) {
     return errorServidor(res, "Error al obtener mis clases", error);
+  }
+}
+
+// ==========================================
+// MIS CLASES - DOCENTE AUTENTICADO
+// ==========================================
+
+async function listarMisClasesDocente(req, res) {
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!validarId(idUsuario)) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        ${CONSULTA_CLASES}
+
+        WHERE EXISTS (
+          SELECT 1
+          FROM Docente d
+
+          WHERE d.id_docente = c.id_docente
+            AND d.id_usuario = @idUsuario
+        )
+
+        ORDER BY cl.fecha DESC, cl.hora_inicio DESC
+      `);
+
+    return res.json(resultado.recordset);
+  } catch (error) {
+    return errorServidor(
+      res,
+      "Error al obtener mis clases como docente",
+      error,
+    );
   }
 }
 
@@ -493,10 +535,15 @@ async function listarCursosDisponibles(req, res) {
   }
 }
 
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
+
 module.exports = {
   listarClases,
   obtenerClasePorId,
   listarMisClases,
+  listarMisClasesDocente,
   crearClase,
   actualizarClase,
   cambiarEstadoClase,

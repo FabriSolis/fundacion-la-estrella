@@ -6,24 +6,33 @@ function validarId(valor) {
   return Number.isInteger(valor) && valor > 0;
 }
 
+// CONSULTA COMPARTIDA DE DOCENTES
+const CONSULTA_DOCENTES = `
+  SELECT
+    d.id_docente,
+    d.id_usuario,
+    d.especialidad,
+    d.estado,
+    u.nombre,
+    u.apellido,
+    u.dni,
+    u.telefono,
+    u.email
+  FROM Docente d
+  INNER JOIN Usuario u
+    ON u.id_usuario = d.id_usuario
+`;
+
+// ==========================================
+// LISTAR TODOS LOS DOCENTES
+// ==========================================
+
 async function listarDocentes(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
 
     const resultado = await pool.request().query(`
-      SELECT
-        d.id_docente,
-        d.id_usuario,
-        d.especialidad,
-        d.estado,
-        u.nombre,
-        u.apellido,
-        u.dni,
-        u.telefono,
-        u.email
-      FROM Docente d
-      INNER JOIN Usuario u
-        ON u.id_usuario = d.id_usuario
+      ${CONSULTA_DOCENTES}
       ORDER BY u.apellido, u.nombre
     `);
 
@@ -33,39 +42,30 @@ async function listarDocentes(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al obtener los docentes",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
+// OBTENER DOCENTE POR ID
+// ==========================================
+
 async function obtenerDocentePorId(req, res) {
+  const idDocente = Number(req.params.id);
+
+  if (!validarId(idDocente)) {
+    return res.status(400).json({
+      mensaje: "Identificador de docente inválido",
+    });
+  }
+
   try {
-    const idDocente = Number(req.params.id);
-
-    if (!validarId(idDocente)) {
-      return res.status(400).json({
-        mensaje: "Identificador de docente inválido",
-      });
-    }
-
     const pool = await conectarBaseDeDatos();
 
     const resultado = await pool
       .request()
       .input("idDocente", sql.Int, idDocente).query(`
-        SELECT
-          d.id_docente,
-          d.id_usuario,
-          d.especialidad,
-          d.estado,
-          u.nombre,
-          u.apellido,
-          u.dni,
-          u.telefono,
-          u.email
-        FROM Docente d
-        INNER JOIN Usuario u
-          ON u.id_usuario = d.id_usuario
+        ${CONSULTA_DOCENTES}
         WHERE d.id_docente = @idDocente
       `);
 
@@ -81,10 +81,52 @@ async function obtenerDocentePorId(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al obtener el docente",
-      error: error.message,
     });
   }
 }
+
+// ==========================================
+// MI PERFIL - DOCENTE AUTENTICADO
+// ==========================================
+
+async function obtenerMiPerfil(req, res) {
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!validarId(idUsuario)) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        ${CONSULTA_DOCENTES}
+        WHERE d.id_usuario = @idUsuario
+      `);
+
+    if (resultado.recordset.length === 0) {
+      return res.status(404).json({
+        mensaje: "No se encontró tu perfil de docente",
+      });
+    }
+
+    return res.json(resultado.recordset[0]);
+  } catch (error) {
+    console.error("Error al obtener mi perfil:", error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener tu perfil de docente",
+    });
+  }
+}
+
+// ==========================================
+// CREAR DOCENTE
+// ==========================================
 
 async function crearDocente(req, res) {
   try {
@@ -161,11 +203,13 @@ async function crearDocente(req, res) {
           especialidad,
           estado
         )
+
         OUTPUT
           INSERTED.id_docente,
           INSERTED.id_usuario,
           INSERTED.especialidad,
           INSERTED.estado
+
         VALUES (
           @idUsuario,
           @especialidad,
@@ -182,29 +226,31 @@ async function crearDocente(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al crear el docente",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
+// ACTUALIZAR DOCENTE
+// ==========================================
+
 async function actualizarDocente(req, res) {
+  const idDocente = Number(req.params.id);
+  const { especialidad, estado } = req.body;
+
+  if (!validarId(idDocente)) {
+    return res.status(400).json({
+      mensaje: "Identificador de docente inválido",
+    });
+  }
+
+  if (!ESTADOS_PERMITIDOS.includes(estado)) {
+    return res.status(400).json({
+      mensaje: "Estado de docente inválido",
+    });
+  }
+
   try {
-    const idDocente = Number(req.params.id);
-
-    const { especialidad, estado } = req.body;
-
-    if (!validarId(idDocente)) {
-      return res.status(400).json({
-        mensaje: "Identificador de docente inválido",
-      });
-    }
-
-    if (!ESTADOS_PERMITIDOS.includes(estado)) {
-      return res.status(400).json({
-        mensaje: "Estado de docente inválido",
-      });
-    }
-
     const pool = await conectarBaseDeDatos();
 
     const resultado = await pool
@@ -213,9 +259,11 @@ async function actualizarDocente(req, res) {
       .input("especialidad", sql.VarChar(100), especialidad?.trim() || null)
       .input("estado", sql.VarChar(20), estado).query(`
         UPDATE Docente
+
         SET
           especialidad = @especialidad,
           estado = @estado
+
         WHERE id_docente = @idDocente;
 
         SELECT @@ROWCOUNT AS filas_modificadas;
@@ -235,28 +283,31 @@ async function actualizarDocente(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al actualizar el docente",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
+// CAMBIAR ESTADO DEL DOCENTE
+// ==========================================
+
 async function cambiarEstadoDocente(req, res) {
+  const idDocente = Number(req.params.id);
+  const { estado } = req.body;
+
+  if (!validarId(idDocente)) {
+    return res.status(400).json({
+      mensaje: "Identificador de docente inválido",
+    });
+  }
+
+  if (!ESTADOS_PERMITIDOS.includes(estado)) {
+    return res.status(400).json({
+      mensaje: "Estado de docente inválido",
+    });
+  }
+
   try {
-    const idDocente = Number(req.params.id);
-    const { estado } = req.body;
-
-    if (!validarId(idDocente)) {
-      return res.status(400).json({
-        mensaje: "Identificador de docente inválido",
-      });
-    }
-
-    if (!ESTADOS_PERMITIDOS.includes(estado)) {
-      return res.status(400).json({
-        mensaje: "Estado de docente inválido",
-      });
-    }
-
     const pool = await conectarBaseDeDatos();
 
     const resultado = await pool
@@ -284,10 +335,13 @@ async function cambiarEstadoDocente(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al cambiar el estado del docente",
-      error: error.message,
     });
   }
 }
+
+// ==========================================
+// USUARIOS DISPONIBLES PARA DOCENTES
+// ==========================================
 
 async function listarUsuariosDisponibles(req, res) {
   try {
@@ -322,14 +376,18 @@ async function listarUsuariosDisponibles(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al obtener usuarios disponibles",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
+
 module.exports = {
   listarDocentes,
   obtenerDocentePorId,
+  obtenerMiPerfil,
   crearDocente,
   actualizarDocente,
   cambiarEstadoDocente,

@@ -6,49 +6,99 @@ function validarId(valor) {
   return Number.isInteger(valor) && valor > 0;
 }
 
+function limpiarObservacion(valor) {
+  if (valor === null || valor === undefined) {
+    return null;
+  }
+
+  if (typeof valor !== "string") {
+    return undefined;
+  }
+
+  return valor.trim() || null;
+}
+
+function esDocente(req) {
+  return req.usuario?.rol === "Docente";
+}
+
+function tienePermisoDocente(req, idUsuarioDocente) {
+  if (!esDocente(req)) {
+    return true;
+  }
+
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  return validarId(idUsuario) && idUsuario === Number(idUsuarioDocente);
+}
+
+// ==========================================
 // OBTENER ALUMNOS Y ASISTENCIAS DE UNA CLASE
+// ==========================================
+
 async function obtenerAsistenciaClase(req, res) {
+  const idClase = Number(req.params.idClase);
+
+  if (!validarId(idClase)) {
+    return res.status(400).json({
+      mensaje: "Identificador de clase inválido",
+    });
+  }
+
   try {
-    const idClase = Number(req.params.idClase);
-
-    if (!validarId(idClase)) {
-      return res.status(400).json({
-        mensaje: "Identificador de clase inválido",
-      });
-    }
-
     const pool = await conectarBaseDeDatos();
 
-    const clase = await pool.request().input("idClase", sql.Int, idClase)
-      .query(`
+    // Buscar la clase y su docente responsable.
+    const resultadoClase = await pool
+      .request()
+      .input("idClase", sql.Int, idClase).query(`
         SELECT
           cl.id_clase,
           cl.id_curso,
           cl.fecha,
-          CONVERT(VARCHAR(5), cl.hora_inicio, 108) AS hora_inicio,
-          CONVERT(VARCHAR(5), cl.hora_fin, 108) AS hora_fin,
+          CONVERT(VARCHAR(5), cl.hora_inicio, 108)
+            AS hora_inicio,
+          CONVERT(VARCHAR(5), cl.hora_fin, 108)
+            AS hora_fin,
           cl.tema,
           cl.estado,
           c.nombre AS curso_nombre,
-          c.nivel AS curso_nivel
+          c.nivel AS curso_nivel,
+          d.id_usuario AS id_usuario_docente
 
         FROM Clase cl
 
         INNER JOIN Curso c
           ON c.id_curso = cl.id_curso
 
+        LEFT JOIN Docente d
+          ON d.id_docente = c.id_docente
+
         WHERE cl.id_clase = @idClase
       `);
 
-    if (clase.recordset.length === 0) {
+    if (resultadoClase.recordset.length === 0) {
       return res.status(404).json({
         mensaje: "Clase no encontrada",
       });
     }
 
-    const idCurso = clase.recordset[0].id_curso;
+    const claseCompleta = resultadoClase.recordset[0];
 
-    const alumnos = await pool
+    // Un docente solo puede consultar sus clases.
+    if (!tienePermisoDocente(req, claseCompleta.id_usuario_docente)) {
+      return res.status(403).json({
+        mensaje: "No tenés permiso para consultar esta clase",
+      });
+    }
+
+    const idCurso = claseCompleta.id_curso;
+
+    // No enviar el ID interno del usuario docente.
+    const { id_usuario_docente, ...datosClase } = claseCompleta;
+
+    // Obtener los alumnos inscriptos y su asistencia.
+    const resultadoAlumnos = await pool
       .request()
       .input("idCurso", sql.Int, idCurso)
       .input("idClase", sql.Int, idClase).query(`
@@ -85,84 +135,154 @@ async function obtenerAsistenciaClase(req, res) {
       `);
 
     return res.json({
-      clase: clase.recordset[0],
-      alumnos: alumnos.recordset,
+      clase: datosClase,
+      alumnos: resultadoAlumnos.recordset,
     });
   } catch (error) {
     console.error("Error al obtener asistencia de clase:", error);
 
     return res.status(500).json({
       mensaje: "Error al obtener los alumnos de la clase",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
 // GUARDAR TODA LA ASISTENCIA DE UNA CLASE
+// ==========================================
+
 async function guardarAsistenciaClase(req, res) {
-  const pool = await conectarBaseDeDatos();
-  const transaction = new sql.Transaction(pool);
+  const idClase = Number(req.params.idClase);
+  const { asistencias } = req.body || {};
+
+  // Validar la clase.
+  if (!validarId(idClase)) {
+    return res.status(400).json({
+      mensaje: "Identificador de clase inválido",
+    });
+  }
+
+  // Validar que existan registros.
+  if (!Array.isArray(asistencias) || asistencias.length === 0) {
+    return res.status(400).json({
+      mensaje: "Debe enviar al menos un registro de asistencia",
+    });
+  }
+
+  // Validar los datos antes de abrir la transacción.
+  const alumnosRecibidos = new Set();
+
+  for (const asistencia of asistencias) {
+    const idAlumno = Number(asistencia?.idAlumno);
+
+    if (
+      !validarId(idAlumno) ||
+      !ESTADOS_PERMITIDOS.includes(asistencia?.estadoAsistencia)
+    ) {
+      return res.status(400).json({
+        mensaje: "Existe un registro de asistencia inválido",
+      });
+    }
+
+    // Evitar alumnos repetidos.
+    if (alumnosRecibidos.has(idAlumno)) {
+      return res.status(400).json({
+        mensaje: "Un alumno aparece más de una vez en la asistencia",
+      });
+    }
+
+    alumnosRecibidos.add(idAlumno);
+
+    // Validar la observación.
+    const observacion = limpiarObservacion(asistencia.observacion);
+
+    if (
+      observacion === undefined ||
+      (observacion && observacion.length > 255)
+    ) {
+      return res.status(400).json({
+        mensaje: "La observación debe ser un texto de hasta 255 caracteres",
+      });
+    }
+  }
+
+  let transaction;
+  let transaccionActiva = false;
 
   try {
-    const idClase = Number(req.params.idClase);
-    const { asistencias } = req.body;
+    const pool = await conectarBaseDeDatos();
 
-    if (!validarId(idClase)) {
-      return res.status(400).json({
-        mensaje: "Identificador de clase inválido",
-      });
-    }
-
-    if (!Array.isArray(asistencias) || asistencias.length === 0) {
-      return res.status(400).json({
-        mensaje: "Debe enviar al menos un registro de asistencia",
-      });
-    }
-
-    for (const asistencia of asistencias) {
-      if (
-        !validarId(Number(asistencia.idAlumno)) ||
-        !ESTADOS_PERMITIDOS.includes(asistencia.estadoAsistencia)
-      ) {
-        return res.status(400).json({
-          mensaje: "Existe un registro de asistencia inválido",
-        });
-      }
-    }
+    transaction = new sql.Transaction(pool);
 
     await transaction.begin();
+    transaccionActiva = true;
+
+    // ======================================
+    // VERIFICAR CLASE Y DOCENTE
+    // ======================================
 
     const requestClase = new sql.Request(transaction);
 
-    const clase = await requestClase.input("idClase", sql.Int, idClase).query(`
+    const resultadoClase = await requestClase.input("idClase", sql.Int, idClase)
+      .query(`
         SELECT
-          id_clase,
-          id_curso,
-          estado
-        FROM Clase
-        WHERE id_clase = @idClase
+          cl.id_clase,
+          cl.id_curso,
+          cl.estado,
+          d.id_usuario AS id_usuario_docente
+
+        FROM Clase cl
+
+        INNER JOIN Curso c
+          ON c.id_curso = cl.id_curso
+
+        LEFT JOIN Docente d
+          ON d.id_docente = c.id_docente
+
+        WHERE cl.id_clase = @idClase
       `);
 
-    if (clase.recordset.length === 0) {
+    if (resultadoClase.recordset.length === 0) {
       await transaction.rollback();
+      transaccionActiva = false;
 
       return res.status(404).json({
         mensaje: "Clase no encontrada",
       });
     }
 
-    const idCurso = clase.recordset[0].id_curso;
+    const clase = resultadoClase.recordset[0];
+
+    // Comprobar que el docente sea responsable.
+    if (!tienePermisoDocente(req, clase.id_usuario_docente)) {
+      await transaction.rollback();
+      transaccionActiva = false;
+
+      return res.status(403).json({
+        mensaje: "No tenés permiso para registrar asistencia en esta clase",
+      });
+    }
+
+    const idCurso = clase.id_curso;
+
+    // ======================================
+    // PROCESAR ASISTENCIAS
+    // ======================================
 
     for (const asistencia of asistencias) {
       const idAlumno = Number(asistencia.idAlumno);
 
-      // Verificar que el alumno pertenece al curso
+      const observacion = limpiarObservacion(asistencia.observacion);
+
+      // Verificar que el alumno pertenezca al curso.
       const requestAlumno = new sql.Request(transaction);
 
       const alumnoInscripto = await requestAlumno
         .input("idAlumno", sql.Int, idAlumno)
         .input("idCurso", sql.Int, idCurso).query(`
-          SELECT id_inscripcion
+          SELECT TOP 1
+            id_inscripcion
+
           FROM Inscripcion
 
           WHERE id_alumno = @idAlumno
@@ -176,23 +296,30 @@ async function guardarAsistenciaClase(req, res) {
 
       if (alumnoInscripto.recordset.length === 0) {
         await transaction.rollback();
+        transaccionActiva = false;
 
         return res.status(400).json({
           mensaje: "Uno de los alumnos no se encuentra inscripto en el curso",
         });
       }
 
+      // Comprobar si ya tiene asistencia registrada.
       const requestExiste = new sql.Request(transaction);
 
       const existente = await requestExiste
         .input("idClase", sql.Int, idClase)
         .input("idAlumno", sql.Int, idAlumno).query(`
           SELECT id_asistencia
+
           FROM Asistencia
 
           WHERE id_clase = @idClase
             AND id_alumno = @idAlumno
         `);
+
+      // ====================================
+      // ACTUALIZAR ASISTENCIA EXISTENTE
+      // ====================================
 
       if (existente.recordset.length > 0) {
         const requestActualizar = new sql.Request(transaction);
@@ -205,11 +332,7 @@ async function guardarAsistenciaClase(req, res) {
             sql.VarChar(20),
             asistencia.estadoAsistencia,
           )
-          .input(
-            "observacion",
-            sql.VarChar(255),
-            asistencia.observacion?.trim() || null,
-          ).query(`
+          .input("observacion", sql.VarChar(255), observacion).query(`
             UPDATE Asistencia
 
             SET
@@ -220,6 +343,10 @@ async function guardarAsistenciaClase(req, res) {
               AND id_alumno = @idAlumno
           `);
       } else {
+        // ==================================
+        // INSERTAR ASISTENCIA NUEVA
+        // ==================================
+
         const requestInsertar = new sql.Request(transaction);
 
         await requestInsertar
@@ -230,11 +357,7 @@ async function guardarAsistenciaClase(req, res) {
             sql.VarChar(20),
             asistencia.estadoAsistencia,
           )
-          .input(
-            "observacion",
-            sql.VarChar(255),
-            asistencia.observacion?.trim() || null,
-          ).query(`
+          .input("observacion", sql.VarChar(255), observacion).query(`
             INSERT INTO Asistencia (
               id_clase,
               id_alumno,
@@ -252,38 +375,45 @@ async function guardarAsistenciaClase(req, res) {
       }
     }
 
+    // Confirmar todos los cambios.
     await transaction.commit();
+    transaccionActiva = false;
 
     return res.json({
       mensaje: "Asistencia guardada correctamente",
     });
   } catch (error) {
-    try {
-      await transaction.rollback();
-    } catch (rollbackError) {
-      console.error("Error al revertir transacción:", rollbackError.message);
+    // Revertir cambios si ocurrió un error.
+    if (transaccionActiva && transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("Error al revertir transacción:", rollbackError);
+      }
     }
 
     console.error("Error al guardar asistencia:", error);
 
     return res.status(500).json({
       mensaje: "Error al guardar la asistencia",
-      error: error.message,
     });
   }
 }
 
+// ==========================================
 // HISTORIAL DE ASISTENCIA DE UN ALUMNO
+// ==========================================
+
 async function obtenerAsistenciaAlumno(req, res) {
+  const idAlumno = Number(req.params.idAlumno);
+
+  if (!validarId(idAlumno)) {
+    return res.status(400).json({
+      mensaje: "Identificador de alumno inválido",
+    });
+  }
+
   try {
-    const idAlumno = Number(req.params.idAlumno);
-
-    if (!validarId(idAlumno)) {
-      return res.status(400).json({
-        mensaje: "Identificador de alumno inválido",
-      });
-    }
-
     const pool = await conectarBaseDeDatos();
 
     const resultado = await pool.request().input("idAlumno", sql.Int, idAlumno)
@@ -324,10 +454,13 @@ async function obtenerAsistenciaAlumno(req, res) {
 
     return res.status(500).json({
       mensaje: "Error al obtener el historial de asistencia",
-      error: error.message,
     });
   }
 }
+
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
 
 module.exports = {
   obtenerAsistenciaClase,

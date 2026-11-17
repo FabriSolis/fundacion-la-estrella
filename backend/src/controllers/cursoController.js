@@ -8,7 +8,10 @@ function validarId(valor) {
   return Number.isInteger(valor) && valor > 0;
 }
 
+// ==========================================
 // LISTAR TODOS LOS CURSOS
+// ==========================================
+
 async function listarCursos(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -52,7 +55,69 @@ async function listarCursos(req, res) {
   }
 }
 
-// OBTENER UN CURSO
+// ==========================================
+// MIS CURSOS - DOCENTE AUTENTICADO
+// ==========================================
+
+async function listarMisCursosDocente(req, res) {
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!validarId(idUsuario)) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        SELECT
+          c.id_curso,
+          c.id_docente,
+          c.nombre,
+          c.nivel,
+          c.descripcion,
+          c.duracion_meses,
+          c.modalidad,
+          c.fecha_inicio,
+          c.fecha_fin,
+          c.cupo,
+          c.estado,
+
+          u.nombre AS docente_nombre,
+          u.apellido AS docente_apellido
+
+        FROM Curso c
+
+        INNER JOIN Docente d
+          ON d.id_docente = c.id_docente
+
+        INNER JOIN Usuario u
+          ON u.id_usuario = d.id_usuario
+
+        WHERE d.id_usuario = @idUsuario
+
+        ORDER BY c.fecha_inicio DESC, c.nombre
+      `);
+
+    return res.json(resultado.recordset);
+  } catch (error) {
+    console.error("Error al listar mis cursos como docente:", error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener tus cursos",
+      error: error.message,
+    });
+  }
+}
+
+// ==========================================
+// OBTENER UN CURSO POR ID
+// ==========================================
+
 async function obtenerCursoPorId(req, res) {
   try {
     const idCurso = Number(req.params.id);
@@ -111,7 +176,10 @@ async function obtenerCursoPorId(req, res) {
   }
 }
 
+// ==========================================
 // CREAR CURSO
+// ==========================================
+
 async function crearCurso(req, res) {
   try {
     const {
@@ -268,7 +336,10 @@ async function crearCurso(req, res) {
   }
 }
 
+// ==========================================
 // ACTUALIZAR CURSO
+// ==========================================
+
 async function actualizarCurso(req, res) {
   try {
     const idCurso = Number(req.params.id);
@@ -381,7 +452,10 @@ async function actualizarCurso(req, res) {
   }
 }
 
-// CAMBIAR ESTADO
+// ==========================================
+// CAMBIAR ESTADO DEL CURSO
+// ==========================================
+
 async function cambiarEstadoCurso(req, res) {
   try {
     const idCurso = Number(req.params.id);
@@ -431,7 +505,10 @@ async function cambiarEstadoCurso(req, res) {
   }
 }
 
-// DOCENTES PARA EL SELECT DEL FORMULARIO
+// ==========================================
+// DOCENTES ACTIVOS PARA EL FORMULARIO
+// ==========================================
+
 async function listarDocentesActivos(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -465,8 +542,13 @@ async function listarDocentesActivos(req, res) {
   }
 }
 
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
+
 module.exports = {
   listarCursos,
+  listarMisCursosDocente,
   obtenerCursoPorId,
   crearCurso,
   actualizarCurso,

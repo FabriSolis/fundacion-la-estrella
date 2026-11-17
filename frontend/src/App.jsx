@@ -4,6 +4,8 @@ import { Box, Paper, Typography } from "@mui/material";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelAlumno from "./pages/PanelAlumno";
+import PanelDocente from "./pages/PanelDocente";
+
 import Usuarios from "./pages/Usuarios";
 import FormularioUsuario from "./pages/FormularioUsuario";
 import Pacientes from "./pages/Pacientes";
@@ -38,8 +40,17 @@ import {
   rutaInicial,
 } from "./config/permisos";
 
-const ADMIN = ROLES.ADMIN;
-const ASISTENTE = ROLES.ASISTENTE;
+// ======================================
+// ROLES
+// ======================================
+
+const ADMINISTRACION = [ROLES.ADMIN, ROLES.ASISTENTE];
+
+const ROLES_ASISTENCIA = [...ADMINISTRACION, ROLES.DOCENTE];
+
+// ======================================
+// PROTEGER RUTAS
+// ======================================
 
 function RutaProtegida() {
   const token = localStorage.getItem("token");
@@ -52,6 +63,10 @@ function RutaProtegida() {
   return <MainLayout />;
 }
 
+// ======================================
+// VERIFICAR ROLES
+// ======================================
+
 function SoloRoles({ permitidos }) {
   if (!permitidos.includes(obtenerRol())) {
     return <Navigate to={rutaInicial()} replace />;
@@ -60,20 +75,34 @@ function SoloRoles({ permitidos }) {
   return <Outlet />;
 }
 
+// ======================================
+// PANEL SEGÚN EL ROL
+// ======================================
+
 function PanelPersonal() {
   const usuario = obtenerUsuario();
   const rol = obtenerRol();
 
+  // Administrador y asistente
+  if (ADMINISTRACION.includes(rol)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Alumno
   if (rol === ROLES.ALUMNO) {
     return <PanelAlumno />;
   }
 
+  // Docente
+  if (rol === ROLES.DOCENTE) {
+    return <PanelDocente />;
+  }
+
+  // Paneles pendientes
   const mensajes = {
-    [ROLES.ASISTENTE]:
-      "Gestioná las actividades de la fundación desde el menú.",
-    [ROLES.DOCENTE]: "Aquí podrás consultar tus cursos y clases.",
-    [ROLES.TERAPEUTA]: "Aquí podrás consultar tus turnos y sesiones.",
-    [ROLES.PACIENTE]: "Aquí podrás consultar tus turnos e historial.",
+    [ROLES.TERAPEUTA]: "Aquí vas a consultar tus pacientes, turnos y sesiones.",
+
+    [ROLES.PACIENTE]: "Aquí vas a consultar tus turnos e historial personal.",
   };
 
   return (
@@ -91,20 +120,45 @@ function PanelPersonal() {
   );
 }
 
+// ======================================
+// RUTAS PRINCIPALES
+// ======================================
+
 function App() {
   return (
     <Routes>
+      {/* LOGIN */}
       <Route path="/" element={<Login />} />
 
+      {/* RUTAS CON AUTENTICACIÓN */}
       <Route element={<RutaProtegida />}>
+        {/* PANEL PERSONAL */}
         <Route path="/mi-panel" element={<PanelPersonal />} />
 
-        <Route element={<SoloRoles permitidos={[ADMIN]} />}>
+        {/* ================================= */}
+        {/* ASISTENCIA: ADMIN, ASISTENTE Y DOCENTE */}
+        {/* ================================= */}
+
+        <Route element={<SoloRoles permitidos={ROLES_ASISTENCIA} />}>
+          <Route
+            path="/clases/:idClase/asistencia"
+            element={<TomarAsistencia />}
+          />
+        </Route>
+
+        {/* ================================= */}
+        {/* ADMINISTRADOR Y ASISTENTE */}
+        {/* ================================= */}
+
+        <Route element={<SoloRoles permitidos={ADMINISTRACION} />}>
+          {/* DASHBOARD */}
           <Route path="/dashboard" element={<Dashboard />} />
 
+          {/* USUARIOS */}
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
 
+          {/* TERAPEUTAS */}
           <Route path="/terapeutas" element={<Terapeutas />} />
           <Route path="/terapeutas/nuevo" element={<FormularioTerapeuta />} />
           <Route
@@ -112,62 +166,65 @@ function App() {
             element={<FormularioTerapeuta />}
           />
 
+          {/* DOCENTES */}
           <Route path="/docentes" element={<Docentes />} />
           <Route path="/docentes/nuevo" element={<FormularioDocente />} />
           <Route path="/docentes/:id/editar" element={<FormularioDocente />} />
 
-          <Route path="/reportes" element={<Reportes />} />
-
-          <Route
-            path="/turnos/:idTurno/sesion"
-            element={<FormularioSesion />}
-          />
-          <Route
-            path="/pacientes/:idPaciente/historial"
-            element={<HistorialPaciente />}
-          />
-        </Route>
-
-        <Route element={<SoloRoles permitidos={[ADMIN, ASISTENTE]} />}>
+          {/* PACIENTES */}
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/nuevo" element={<FormularioPaciente />} />
           <Route
             path="/pacientes/:id/editar"
             element={<FormularioPaciente />}
           />
+          <Route
+            path="/pacientes/:idPaciente/historial"
+            element={<HistorialPaciente />}
+          />
 
+          {/* ALUMNOS */}
           <Route path="/alumnos" element={<Alumnos />} />
           <Route path="/alumnos/nuevo" element={<FormularioAlumno />} />
           <Route path="/alumnos/:id/editar" element={<FormularioAlumno />} />
 
+          {/* CURSOS */}
           <Route path="/cursos" element={<Cursos />} />
           <Route path="/cursos/nuevo" element={<FormularioCurso />} />
           <Route path="/cursos/:id/editar" element={<FormularioCurso />} />
 
-          <Route path="/turnos" element={<Turnos />} />
-          <Route path="/turnos/nuevo" element={<FormularioTurno />} />
-          <Route path="/turnos/:id/editar" element={<FormularioTurno />} />
-
+          {/* INSCRIPCIONES */}
           <Route path="/inscripciones" element={<Inscripciones />} />
           <Route
             path="/inscripciones/nueva"
             element={<FormularioInscripcion />}
           />
 
+          {/* CLASES */}
           <Route path="/clases" element={<Clases />} />
           <Route path="/clases/nueva" element={<FormularioClase />} />
           <Route path="/clases/:id/editar" element={<FormularioClase />} />
+
+          {/* TURNOS */}
+          <Route path="/turnos" element={<Turnos />} />
+          <Route path="/turnos/nuevo" element={<FormularioTurno />} />
+          <Route path="/turnos/:id/editar" element={<FormularioTurno />} />
           <Route
-            path="/clases/:idClase/asistencia"
-            element={<TomarAsistencia />}
+            path="/turnos/:idTurno/sesion"
+            element={<FormularioSesion />}
           />
 
+          {/* PAGOS */}
           <Route path="/pagos" element={<Pagos />} />
           <Route path="/pagos/nuevo" element={<FormularioPago />} />
           <Route path="/pagos/:id/editar" element={<FormularioPago />} />
+
+          {/* REPORTES */}
+          <Route path="/reportes" element={<Reportes />} />
         </Route>
       </Route>
 
+      {/* RUTAS NO ENCONTRADAS */}
       <Route
         path="*"
         element={
