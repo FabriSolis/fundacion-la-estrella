@@ -1,9 +1,9 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
-
 import { Box, Paper, Typography } from "@mui/material";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import PanelAlumno from "./pages/PanelAlumno";
 import Usuarios from "./pages/Usuarios";
 import FormularioUsuario from "./pages/FormularioUsuario";
 import Pacientes from "./pages/Pacientes";
@@ -53,9 +53,7 @@ function RutaProtegida() {
 }
 
 function SoloRoles({ permitidos }) {
-  const rol = obtenerRol();
-
-  if (!permitidos.includes(rol)) {
+  if (!permitidos.includes(obtenerRol())) {
     return <Navigate to={rutaInicial()} replace />;
   }
 
@@ -66,32 +64,27 @@ function PanelPersonal() {
   const usuario = obtenerUsuario();
   const rol = obtenerRol();
 
+  if (rol === ROLES.ALUMNO) {
+    return <PanelAlumno />;
+  }
+
   const mensajes = {
     [ROLES.ASISTENTE]:
       "Gestioná las actividades de la fundación desde el menú.",
-    [ROLES.ALUMNO]:
-      "Próximamente podrás consultar tus cursos, clases y asistencias.",
-    [ROLES.DOCENTE]:
-      "Próximamente podrás gestionar tus cursos y registrar asistencias.",
-    [ROLES.TERAPEUTA]:
-      "Próximamente podrás consultar tus turnos y registrar sesiones.",
-    [ROLES.PACIENTE]:
-      "Próximamente podrás consultar tus turnos e historial autorizado.",
+    [ROLES.DOCENTE]: "Aquí podrás consultar tus cursos y clases.",
+    [ROLES.TERAPEUTA]: "Aquí podrás consultar tus turnos y sesiones.",
+    [ROLES.PACIENTE]: "Aquí podrás consultar tus turnos e historial.",
   };
 
   return (
     <Box sx={{ maxWidth: 850, mx: "auto", mt: 3 }}>
-      <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 3 }}>
+      <Paper sx={{ p: 4, borderRadius: 3 }}>
         <Typography variant="h4" fontWeight={700} gutterBottom>
           ¡Bienvenido, {usuario?.nombre || "usuario"}!
         </Typography>
 
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Fundación La Estrella
-        </Typography>
-
-        <Typography>
-          {mensajes[rol] || "Bienvenido a tu espacio personal."}
+        <Typography color="text.secondary">
+          {mensajes[rol] || "Bienvenido a Fundación La Estrella."}
         </Typography>
       </Paper>
     </Box>

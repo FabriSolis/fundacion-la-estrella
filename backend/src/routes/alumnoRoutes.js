@@ -3,6 +3,7 @@ const express = require("express");
 const {
   listarAlumnos,
   obtenerAlumnoPorId,
+  obtenerMiPerfil,
   crearAlumno,
   actualizarAlumno,
   cambiarEstadoAlumno,
@@ -16,6 +17,10 @@ const router = express.Router();
 
 router.use(verificarToken);
 
+// PERFIL DEL ALUMNO
+router.get("/mi-perfil", verificarRol("Alumno"), obtenerMiPerfil);
+
+// GESTIÓN ADMINISTRATIVA
 router.get(
   "/usuarios-disponibles",
   verificarRol("Administrador", "Asistente Administrativo"),
