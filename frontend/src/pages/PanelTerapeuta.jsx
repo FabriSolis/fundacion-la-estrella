@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 
 const API = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(
-  /\/$/,
+  /\/+$/,
   "",
 );
 
@@ -57,14 +57,30 @@ async function consultar(ruta, signal) {
   if (!token) throw new Error("No hay una sesión iniciada");
 
   const respuesta = await fetch(`${API}${ruta}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "ngrok-skip-browser-warning": "true",
+    },
     signal,
   });
 
-  const datos = await respuesta.json().catch(() => null);
+  const tipo = respuesta.headers.get("content-type") || "";
+  const datos = tipo.includes("application/json")
+    ? await respuesta.json()
+    : null;
+
   if (!respuesta.ok) {
-    throw new Error(datos?.mensaje || `Error ${respuesta.status}`);
+    throw new Error(datos?.mensaje || `Error HTTP ${respuesta.status}`);
   }
+
+  if (!datos) {
+    throw new Error(
+      "El servidor no devolvió JSON. Revisá la conexión con ngrok.",
+    );
+  }
+
   return datos;
 }
 
@@ -135,12 +151,12 @@ export default function PanelTerapeuta() {
       if (signal.aborted) return;
 
       const errores = [];
-      const nombres = ["perfil", "pacientes", "turnos"];
+      const secciones = ["perfil", "pacientes", "turnos"];
 
       resultados.forEach((resultado, indice) => {
         if (resultado.status === "rejected") {
           errores.push(
-            `Error en ${nombres[indice]}: ${resultado.reason?.message || "Error desconocido"}`,
+            `Error en ${secciones[indice]}: ${resultado.reason?.message || "Error desconocido"}`,
           );
         }
       });
@@ -222,6 +238,7 @@ export default function PanelTerapeuta() {
               : "Fundación La Estrella"}
           </Typography>
         </Box>
+
         <Button variant="outlined" onClick={actualizar}>
           Actualizar datos
         </Button>
@@ -273,6 +290,7 @@ export default function PanelTerapeuta() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Mi perfil
               </Typography>
+
               {!perfil ? (
                 <Alert severity="info">No hay información del perfil.</Alert>
               ) : (
@@ -309,6 +327,7 @@ export default function PanelTerapeuta() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Mis pacientes ({pacientes.length})
               </Typography>
+
               {!pacientes.length ? (
                 <Alert severity="info">No tenés pacientes vinculados.</Alert>
               ) : (
