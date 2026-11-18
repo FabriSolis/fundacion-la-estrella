@@ -20,11 +20,20 @@ const reporteRoutes = require("./routes/reporteRoutes");
 
 const app = express();
 
+const origenesPermitidos = [
+  "http://localhost:5173",
+  "https://fundacion-la-estrella.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", process.env.FRONTEND_URL].filter(Boolean),
+    origin: origenesPermitidos,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
