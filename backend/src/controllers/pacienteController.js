@@ -1,5 +1,10 @@
 const { conectarBaseDeDatos, sql } = require("../config/database");
 
+// ==========================================
+// LISTAR PACIENTES
+// ADMINISTRACIÓN
+// ==========================================
+
 async function listarPacientes(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -32,6 +37,83 @@ async function listarPacientes(req, res) {
     });
   }
 }
+
+// ==========================================
+// MIS PACIENTES - TERAPEUTA
+// NUEVA FUNCIÓN
+// ==========================================
+
+async function listarMisPacientesTerapeuta(req, res) {
+  if (req.usuario?.rol !== "Terapeuta") {
+    return res.status(403).json({
+      mensaje: "No tenés permiso para consultar estos pacientes",
+    });
+  }
+
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        SELECT
+          p.id_paciente,
+          p.fecha_alta,
+          p.motivo_consulta,
+          p.estado,
+
+          u.id_usuario,
+          u.nombre,
+          u.apellido,
+          u.dni,
+          u.telefono,
+          u.email
+
+        FROM Paciente p
+
+        INNER JOIN Usuario u
+          ON u.id_usuario = p.id_usuario
+
+        WHERE EXISTS (
+          SELECT 1
+          FROM Turno tu
+
+          INNER JOIN Terapeuta t
+            ON t.id_terapeuta = tu.id_terapeuta
+
+          WHERE tu.id_paciente = p.id_paciente
+            AND t.id_usuario = @idUsuario
+            AND tu.estado NOT IN (
+              'cancelado',
+              'reprogramado'
+            )
+        )
+
+        ORDER BY u.apellido, u.nombre
+      `);
+
+    return res.json(resultado.recordset);
+  } catch (error) {
+    console.error("Error al listar pacientes del terapeuta:", error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener mis pacientes",
+    });
+  }
+}
+
+// ==========================================
+// OBTENER PACIENTE POR ID
+// ADMINISTRACIÓN
+// ==========================================
 
 async function obtenerPacientePorId(req, res) {
   try {
@@ -81,6 +163,11 @@ async function obtenerPacientePorId(req, res) {
     });
   }
 }
+
+// ==========================================
+// CREAR PACIENTE
+// ADMINISTRACIÓN
+// ==========================================
 
 async function crearPaciente(req, res) {
   try {
@@ -189,6 +276,11 @@ async function crearPaciente(req, res) {
   }
 }
 
+// ==========================================
+// ACTUALIZAR PACIENTE
+// ADMINISTRACIÓN
+// ==========================================
+
 async function actualizarPaciente(req, res) {
   try {
     const idPaciente = Number(req.params.id);
@@ -245,6 +337,11 @@ async function actualizarPaciente(req, res) {
   }
 }
 
+// ==========================================
+// CAMBIAR ESTADO DEL PACIENTE
+// ADMINISTRACIÓN
+// ==========================================
+
 async function cambiarEstadoPaciente(req, res) {
   try {
     const idPaciente = Number(req.params.id);
@@ -296,6 +393,11 @@ async function cambiarEstadoPaciente(req, res) {
   }
 }
 
+// ==========================================
+// LISTAR USUARIOS DISPONIBLES
+// ADMINISTRACIÓN
+// ==========================================
+
 async function listarUsuariosDisponibles(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -329,8 +431,13 @@ async function listarUsuariosDisponibles(req, res) {
   }
 }
 
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
+
 module.exports = {
   listarPacientes,
+  listarMisPacientesTerapeuta,
   obtenerPacientePorId,
   crearPaciente,
   actualizarPaciente,

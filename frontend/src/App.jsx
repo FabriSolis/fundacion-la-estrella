@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import PanelAlumno from "./pages/PanelAlumno";
 import PanelDocente from "./pages/PanelDocente";
+import PanelTerapeuta from "./pages/PanelTerapeuta";
 
 import Usuarios from "./pages/Usuarios";
 import FormularioUsuario from "./pages/FormularioUsuario";
@@ -83,25 +84,28 @@ function PanelPersonal() {
   const usuario = obtenerUsuario();
   const rol = obtenerRol();
 
-  // Administrador y asistente
+  // ADMINISTRADOR Y ASISTENTE
   if (ADMINISTRACION.includes(rol)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Alumno
+  // ALUMNO
   if (rol === ROLES.ALUMNO) {
     return <PanelAlumno />;
   }
 
-  // Docente
+  // DOCENTE
   if (rol === ROLES.DOCENTE) {
     return <PanelDocente />;
   }
 
-  // Paneles pendientes
-  const mensajes = {
-    [ROLES.TERAPEUTA]: "Aquí vas a consultar tus pacientes, turnos y sesiones.",
+  // TERAPEUTA
+  if (rol === ROLES.TERAPEUTA) {
+    return <PanelTerapeuta />;
+  }
 
+  // PACIENTE - PENDIENTE
+  const mensajes = {
     [ROLES.PACIENTE]: "Aquí vas a consultar tus turnos e historial personal.",
   };
 

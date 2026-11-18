@@ -1,5 +1,9 @@
 const { conectarBaseDeDatos, sql } = require("../config/database");
 
+// ==========================================
+// LISTAR TERAPEUTAS
+// ==========================================
+
 async function listarTerapeutas(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -31,6 +35,10 @@ async function listarTerapeutas(req, res) {
     });
   }
 }
+
+// ==========================================
+// OBTENER TERAPEUTA POR ID
+// ==========================================
 
 async function obtenerTerapeutaPorId(req, res) {
   try {
@@ -79,6 +87,71 @@ async function obtenerTerapeutaPorId(req, res) {
     });
   }
 }
+
+// ==========================================
+// MI PERFIL - TERAPEUTA
+// ==========================================
+
+// NUEVA FUNCIÓN
+// Obtiene el perfil del terapeuta autenticado.
+// No recibe un ID desde el frontend.
+
+async function obtenerMiPerfil(req, res) {
+  if (req.usuario?.rol !== "Terapeuta") {
+    return res.status(403).json({
+      mensaje: "No tenés permiso para consultar este perfil",
+    });
+  }
+
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        SELECT
+          t.id_terapeuta,
+          t.especialidad,
+          t.estado,
+          u.id_usuario,
+          u.nombre,
+          u.apellido,
+          u.dni,
+          u.telefono,
+          u.email
+        FROM Terapeuta t
+        INNER JOIN Usuario u
+          ON u.id_usuario = t.id_usuario
+        WHERE t.id_usuario = @idUsuario
+      `);
+
+    if (resultado.recordset.length === 0) {
+      return res.status(404).json({
+        mensaje: "No se encontró tu perfil de terapeuta",
+      });
+    }
+
+    return res.json(resultado.recordset[0]);
+  } catch (error) {
+    console.error("Error al obtener el perfil del terapeuta:", error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener mi perfil de terapeuta",
+    });
+  }
+}
+
+// ==========================================
+// CREAR TERAPEUTA
+// ==========================================
 
 async function crearTerapeuta(req, res) {
   try {
@@ -173,6 +246,10 @@ async function crearTerapeuta(req, res) {
   }
 }
 
+// ==========================================
+// ACTUALIZAR TERAPEUTA
+// ==========================================
+
 async function actualizarTerapeuta(req, res) {
   try {
     const idTerapeuta = Number(req.params.id);
@@ -227,6 +304,10 @@ async function actualizarTerapeuta(req, res) {
   }
 }
 
+// ==========================================
+// CAMBIAR ESTADO DEL TERAPEUTA
+// ==========================================
+
 async function cambiarEstadoTerapeuta(req, res) {
   try {
     const idTerapeuta = Number(req.params.id);
@@ -278,6 +359,10 @@ async function cambiarEstadoTerapeuta(req, res) {
   }
 }
 
+// ==========================================
+// LISTAR USUARIOS DISPONIBLES
+// ==========================================
+
 async function listarUsuariosDisponibles(req, res) {
   try {
     const pool = await conectarBaseDeDatos();
@@ -311,9 +396,14 @@ async function listarUsuariosDisponibles(req, res) {
   }
 }
 
+// ==========================================
+// EXPORTAR FUNCIONES
+// ==========================================
+
 module.exports = {
   listarTerapeutas,
   obtenerTerapeutaPorId,
+  obtenerMiPerfil,
   crearTerapeuta,
   actualizarTerapeuta,
   cambiarEstadoTerapeuta,

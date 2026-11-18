@@ -99,6 +99,74 @@ async function listarTurnos(req, res) {
   }
 }
 
+// ==========================================
+// MIS TURNOS - TERAPEUTA AUTENTICADO
+// ==========================================
+
+async function listarMisTurnosTerapeuta(req, res) {
+  if (req.usuario?.rol !== "Terapeuta") {
+    return res.status(403).json({
+      mensaje: "No tenés permiso para consultar estos turnos",
+    });
+  }
+
+  const idUsuario = Number(req.usuario?.idUsuario);
+
+  if (!validarId(idUsuario)) {
+    return res.status(401).json({
+      mensaje: "Usuario autenticado inválido",
+    });
+  }
+
+  try {
+    const pool = await conectarBaseDeDatos();
+
+    const resultado = await pool
+      .request()
+      .input("idUsuario", sql.Int, idUsuario).query(`
+        SELECT
+          tu.id_turno,
+          tu.fecha,
+          CONVERT(VARCHAR(5), tu.hora, 108) AS hora,
+          tu.modalidad,
+          tu.estado,
+          tu.motivo_consulta,
+          tu.observacion,
+
+          p.id_paciente,
+          up.nombre AS paciente_nombre,
+          up.apellido AS paciente_apellido,
+          up.dni AS paciente_dni,
+
+          t.id_terapeuta,
+          ut.nombre AS terapeuta_nombre,
+          ut.apellido AS terapeuta_apellido,
+          t.especialidad AS terapeuta_especialidad
+
+        FROM Turno tu
+        INNER JOIN Paciente p
+          ON p.id_paciente = tu.id_paciente
+        INNER JOIN Usuario up
+          ON up.id_usuario = p.id_usuario
+        INNER JOIN Terapeuta t
+          ON t.id_terapeuta = tu.id_terapeuta
+        INNER JOIN Usuario ut
+          ON ut.id_usuario = t.id_usuario
+
+        WHERE t.id_usuario = @idUsuario
+        ORDER BY tu.fecha DESC, tu.hora DESC
+      `);
+
+    return res.json(resultado.recordset);
+  } catch (error) {
+    console.error("Error al listar mis turnos del terapeuta:", error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener mis turnos",
+    });
+  }
+}
+
 async function obtenerTurnoPorId(req, res) {
   try {
     const idTurno = Number(req.params.id);
@@ -564,6 +632,7 @@ async function obtenerOpcionesTurno(req, res) {
 
 module.exports = {
   listarTurnos,
+  listarMisTurnosTerapeuta,
   obtenerTurnoPorId,
   crearTurno,
   actualizarTurno,
