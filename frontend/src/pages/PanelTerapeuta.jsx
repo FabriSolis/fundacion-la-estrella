@@ -24,6 +24,7 @@ const API = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(
   /\/+$/,
   "",
 );
+
 const FORMULARIO_VACIO = {
   evolucion: "",
   observaciones: "",
@@ -57,6 +58,7 @@ const colorEstado = (estado) => {
     reprogramado: "warning",
     ausente: "error",
   };
+
   return colores[String(estado || "").toLowerCase()] || "default";
 };
 
@@ -73,7 +75,10 @@ const ACCIONES = {
 
 async function consultar(ruta, signal, opciones = {}) {
   const token = localStorage.getItem("token");
-  if (!token) throw new Error("No hay una sesión iniciada");
+
+  if (!token) {
+    throw new Error("No hay una sesión iniciada");
+  }
 
   const respuesta = await fetch(`${API}${ruta}`, {
     method: opciones.method || "GET",
@@ -88,6 +93,7 @@ async function consultar(ruta, signal, opciones = {}) {
   });
 
   const tipo = respuesta.headers.get("content-type") || "";
+
   const datos = tipo.includes("application/json")
     ? await respuesta.json()
     : null;
@@ -136,10 +142,13 @@ function TablaTurnos({
             ))}
           </TableRow>
         </TableHead>
+
         <TableBody>
           {turnos.map((turno) => {
             const estadoActual = String(turno.estado || "").toLowerCase();
+
             const acciones = ACCIONES[estadoActual] || [];
+
             const permiteSesion = ["confirmado", "realizado"].includes(
               estadoActual,
             );
@@ -147,14 +156,18 @@ function TablaTurnos({
             return (
               <TableRow key={turno.id_turno} hover>
                 <TableCell>{fechaTexto(turno.fecha)}</TableCell>
+
                 <TableCell>{horaTexto(turno.hora)}</TableCell>
+
                 <TableCell>
                   {nombreCompleto(
                     turno.paciente_nombre,
                     turno.paciente_apellido,
                   )}
                 </TableCell>
+
                 <TableCell>{turno.modalidad || "—"}</TableCell>
+
                 <TableCell>
                   <Chip
                     label={turno.estado || "—"}
@@ -162,6 +175,7 @@ function TablaTurnos({
                     size="small"
                   />
                 </TableCell>
+
                 <TableCell>
                   {acciones.length || permiteSesion ? (
                     <Stack
@@ -185,6 +199,7 @@ function TablaTurnos({
                             : accion.texto}
                         </Button>
                       ))}
+
                       {permiteSesion && (
                         <Button
                           size="small"
@@ -222,15 +237,21 @@ export default function PanelTerapeuta() {
   const [recarga, setRecarga] = useState(0);
   const [procesando, setProcesando] = useState(null);
   const [aviso, setAviso] = useState(null);
+
   const [idPaciente, setIdPaciente] = useState("");
   const [idTurnoSesion, setIdTurnoSesion] = useState("");
   const [idSesionEditar, setIdSesionEditar] = useState(null);
+
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
+
   const [historial, setHistorial] = useState([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
+
   const [errorHistorial, setErrorHistorial] = useState("");
   const [recargaHistorial, setRecargaHistorial] = useState(0);
   const [guardandoSesion, setGuardandoSesion] = useState(false);
+
+  // CARGAR DATOS DEL TERAPEUTA
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -249,7 +270,9 @@ export default function PanelTerapeuta() {
       resultados.forEach((resultado, indice) => {
         if (resultado.status === "rejected") {
           errores.push(
-            `Error en ${secciones[indice]}: ${resultado.reason?.message || "Error desconocido"}`,
+            `Error en ${secciones[indice]}: ${
+              resultado.reason?.message || "Error desconocido"
+            }`,
           );
         }
       });
@@ -276,12 +299,13 @@ export default function PanelTerapeuta() {
     return () => controlador.abort();
   }, [recarga]);
 
+  // CARGAR HISTORIAL DEL PACIENTE
+  // CORREGIDO: sin setState síncrono dentro del efecto
+
   useEffect(() => {
     if (!idPaciente || pestana !== 3) return;
 
     const controlador = new AbortController();
-    setCargandoHistorial(true);
-    setErrorHistorial("");
 
     consultar(`/sesiones/paciente/${idPaciente}`, controlador.signal)
       .then((resultado) => {
@@ -303,16 +327,25 @@ export default function PanelTerapeuta() {
     return () => controlador.abort();
   }, [idPaciente, pestana, recargaHistorial]);
 
+  // ACTUALIZAR DATOS
+
   const actualizar = () => {
     setAviso(null);
+
     setDatos((anterior) => ({
       ...anterior,
       cargando: true,
       errores: [],
     }));
+
     setRecarga((valor) => valor + 1);
+
+    setCargandoHistorial(Boolean(idPaciente));
+    setErrorHistorial("");
     setRecargaHistorial((valor) => valor + 1);
   };
+
+  // CAMBIAR ESTADO DE TURNO
 
   const cambiarEstado = async (turno, estado) => {
     if (procesando !== null) return;
@@ -324,7 +357,11 @@ export default function PanelTerapeuta() {
       return;
     }
 
-    setProcesando({ id: turno.id_turno, estado });
+    setProcesando({
+      id: turno.id_turno,
+      estado,
+    });
+
     setAviso(null);
 
     try {
@@ -356,6 +393,8 @@ export default function PanelTerapeuta() {
     }
   };
 
+  // SELECCIONAR PACIENTE
+
   const elegirPaciente = (valor) => {
     setIdPaciente(String(valor));
     setIdTurnoSesion("");
@@ -363,8 +402,14 @@ export default function PanelTerapeuta() {
     setFormulario(FORMULARIO_VACIO);
     setHistorial([]);
     setErrorHistorial("");
+
+    // Activamos la carga desde el evento
+    setCargandoHistorial(Boolean(valor));
+
     setAviso(null);
   };
+
+  // ABRIR SESIÓN DESDE UN TURNO
 
   const abrirSesion = (turno) => {
     elegirPaciente(turno.id_paciente);
@@ -372,14 +417,18 @@ export default function PanelTerapeuta() {
     setPestana(3);
   };
 
+  // EDITAR SESIÓN
+
   const editarSesion = (sesion) => {
     setIdSesionEditar(sesion.id_sesion);
     setIdTurnoSesion("");
+
     setFormulario({
       evolucion: sesion.evolucion || "",
       observaciones: sesion.observaciones || "",
       recomendaciones: sesion.recomendaciones || "",
     });
+
     setAviso(null);
   };
 
@@ -389,12 +438,14 @@ export default function PanelTerapeuta() {
     setFormulario(FORMULARIO_VACIO);
   };
 
+  // GUARDAR SESIÓN
+
   const guardarSesion = async (evento) => {
     evento.preventDefault();
 
     if (guardandoSesion) return;
 
-    if (!idSesionEditar && !idTurnoSesion) {
+    if (idSesionEditar === null && !idTurnoSesion) {
       setAviso({
         tipo: "error",
         texto: "Seleccioná un turno para registrar la sesión.",
@@ -451,6 +502,9 @@ export default function PanelTerapeuta() {
           : "Sesión registrada correctamente.",
       });
 
+      // Actualizar historial después de guardar
+      setCargandoHistorial(true);
+      setErrorHistorial("");
       setRecargaHistorial((valor) => valor + 1);
       setRecarga((valor) => valor + 1);
     } catch (error) {
@@ -510,7 +564,10 @@ export default function PanelTerapeuta() {
       <Stack
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
+        alignItems={{
+          xs: "flex-start",
+          sm: "center",
+        }}
         spacing={2}
         sx={{ mb: 3 }}
       >
@@ -518,6 +575,7 @@ export default function PanelTerapeuta() {
           <Typography variant="h4" fontWeight="bold">
             Panel Terapeuta
           </Typography>
+
           <Typography color="text.secondary">
             {perfil
               ? `Bienvenido, ${nombreCompleto(perfil.nombre, perfil.apellido)}`
@@ -568,6 +626,7 @@ export default function PanelTerapeuta() {
         ].map(([titulo, cantidad]) => (
           <Paper key={titulo} variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
             <Typography color="text.secondary">{titulo}</Typography>
+
             <Typography variant="h3" fontWeight="bold">
               {cantidad}
             </Typography>
@@ -575,10 +634,23 @@ export default function PanelTerapeuta() {
         ))}
       </Box>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
         <Tabs
           value={pestana}
-          onChange={(_, valor) => setPestana(valor)}
+          onChange={(_, valor) => {
+            if (valor === 3 && idPaciente) {
+              setCargandoHistorial(true);
+              setErrorHistorial("");
+            }
+
+            setPestana(valor);
+          }}
           variant="scrollable"
           scrollButtons="auto"
         >
@@ -603,18 +675,23 @@ export default function PanelTerapeuta() {
                     <strong>Nombre:</strong>{" "}
                     {nombreCompleto(perfil.nombre, perfil.apellido)}
                   </Typography>
+
                   <Typography>
                     <strong>Especialidad:</strong> {perfil.especialidad || "—"}
                   </Typography>
+
                   <Typography>
                     <strong>Email:</strong> {perfil.email || "—"}
                   </Typography>
+
                   <Typography>
                     <strong>Teléfono:</strong> {perfil.telefono || "—"}
                   </Typography>
+
                   <Typography>
                     <strong>DNI:</strong> {perfil.dni || "—"}
                   </Typography>
+
                   <Box>
                     <Chip
                       label={perfil.estado || "—"}
@@ -650,14 +727,18 @@ export default function PanelTerapeuta() {
                         ))}
                       </TableRow>
                     </TableHead>
+
                     <TableBody>
                       {pacientes.map((paciente) => (
                         <TableRow key={paciente.id_paciente} hover>
                           <TableCell>
                             {nombreCompleto(paciente.nombre, paciente.apellido)}
                           </TableCell>
+
                           <TableCell>{paciente.telefono || "—"}</TableCell>
+
                           <TableCell>{paciente.email || "—"}</TableCell>
+
                           <TableCell>
                             <Chip
                               label={paciente.estado || "—"}
@@ -665,6 +746,7 @@ export default function PanelTerapeuta() {
                               size="small"
                             />
                           </TableCell>
+
                           <TableCell>
                             <Button
                               size="small"
@@ -691,6 +773,7 @@ export default function PanelTerapeuta() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   Próximos turnos ({proximos.length})
                 </Typography>
+
                 <TablaTurnos
                   turnos={proximos}
                   alCambiarEstado={cambiarEstado}
@@ -703,6 +786,7 @@ export default function PanelTerapeuta() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   Todos mis turnos ({turnos.length})
                 </Typography>
+
                 <TablaTurnos
                   turnos={turnosOrdenados}
                   alCambiarEstado={cambiarEstado}
@@ -726,6 +810,7 @@ export default function PanelTerapeuta() {
                 onChange={(evento) => elegirPaciente(evento.target.value)}
               >
                 <MenuItem value="">Seleccioná un paciente</MenuItem>
+
                 {pacientes.map((paciente) => (
                   <MenuItem
                     key={paciente.id_paciente}
@@ -743,7 +828,13 @@ export default function PanelTerapeuta() {
                 </Alert>
               ) : (
                 <>
-                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                    }}
+                  >
                     <Typography variant="h6" sx={{ mb: 2 }}>
                       {idSesionEditar !== null
                         ? "Editar sesión"
@@ -764,6 +855,7 @@ export default function PanelTerapeuta() {
                             }
                           >
                             <MenuItem value="">Seleccioná un turno</MenuItem>
+
                             {turnosDelPaciente.map((turno) => (
                               <MenuItem
                                 key={turno.id_turno}
@@ -833,7 +925,8 @@ export default function PanelTerapeuta() {
                             variant="contained"
                             disabled={
                               guardandoSesion ||
-                              (!idSesionEditar && !turnosDelPaciente.length)
+                              (idSesionEditar === null &&
+                                !turnosDelPaciente.length)
                             }
                           >
                             {guardandoSesion
@@ -876,7 +969,10 @@ export default function PanelTerapeuta() {
                           <Paper
                             key={sesion.id_sesion}
                             variant="outlined"
-                            sx={{ p: 2, borderRadius: 2 }}
+                            sx={{
+                              p: 2,
+                              borderRadius: 2,
+                            }}
                           >
                             <Stack
                               direction={{
@@ -895,6 +991,7 @@ export default function PanelTerapeuta() {
                                 Sesión del{" "}
                                 {fechaTexto(sesion.fecha_realizacion)}
                               </Typography>
+
                               <Button
                                 size="small"
                                 onClick={() => editarSesion(sesion)}
@@ -913,17 +1010,29 @@ export default function PanelTerapeuta() {
                               {horaTexto(sesion.hora)}
                             </Typography>
 
-                            <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                            <Typography
+                              sx={{
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
                               <strong>Evolución:</strong>{" "}
                               {sesion.evolucion || "—"}
                             </Typography>
 
-                            <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                            <Typography
+                              sx={{
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
                               <strong>Observaciones:</strong>{" "}
                               {sesion.observaciones || "—"}
                             </Typography>
 
-                            <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                            <Typography
+                              sx={{
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
                               <strong>Recomendaciones:</strong>{" "}
                               {sesion.recomendaciones || "—"}
                             </Typography>
