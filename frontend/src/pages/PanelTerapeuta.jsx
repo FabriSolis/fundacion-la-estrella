@@ -48,21 +48,35 @@ const colorEstado = (estado) => {
     realizado: "success",
     cancelado: "error",
     reprogramado: "warning",
+    ausente: "error",
   };
   return colores[String(estado || "").toLowerCase()] || "default";
 };
 
-async function consultar(ruta, signal) {
+const ACCIONES = {
+  solicitado: [
+    { estado: "confirmado", texto: "Confirmar", color: "primary" },
+    { estado: "cancelado", texto: "Cancelar", color: "error" },
+  ],
+  confirmado: [
+    { estado: "realizado", texto: "Marcar realizado", color: "success" },
+    { estado: "cancelado", texto: "Cancelar", color: "error" },
+  ],
+};
+
+async function consultar(ruta, signal, opciones = {}) {
   const token = localStorage.getItem("token");
   if (!token) throw new Error("No hay una sesión iniciada");
 
   const respuesta = await fetch(`${API}${ruta}`, {
-    method: "GET",
+    method: opciones.method || "GET",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
       "ngrok-skip-browser-warning": "true",
+      ...(opciones.body ? { "Content-Type": "application/json" } : {}),
     },
+    ...(opciones.body ? { body: JSON.stringify(opciones.body) } : {}),
     signal,
   });
 
@@ -74,53 +88,87 @@ async function consultar(ruta, signal) {
   if (!respuesta.ok) {
     throw new Error(datos?.mensaje || `Error HTTP ${respuesta.status}`);
   }
-
   if (!datos) {
     throw new Error(
       "El servidor no devolvió JSON. Revisá la conexión con ngrok.",
     );
   }
-
   return datos;
 }
 
-function TablaTurnos({ turnos }) {
+function TablaTurnos({ turnos, alCambiarEstado, procesando }) {
   if (!turnos.length) {
     return <Alert severity="info">No hay turnos para mostrar.</Alert>;
   }
 
   return (
     <TableContainer>
-      <Table size="small" sx={{ minWidth: 650 }}>
+      <Table size="small" sx={{ minWidth: 780 }}>
         <TableHead>
           <TableRow>
-            {["Fecha", "Hora", "Paciente", "Modalidad", "Estado"].map(
-              (titulo) => (
-                <TableCell key={titulo}>
-                  <strong>{titulo}</strong>
-                </TableCell>
-              ),
-            )}
+            {[
+              "Fecha",
+              "Hora",
+              "Paciente",
+              "Modalidad",
+              "Estado",
+              "Acciones",
+            ].map((titulo) => (
+              <TableCell key={titulo}>
+                <strong>{titulo}</strong>
+              </TableCell>
+            ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {turnos.map((turno) => (
-            <TableRow key={turno.id_turno} hover>
-              <TableCell>{fechaTexto(turno.fecha)}</TableCell>
-              <TableCell>{horaTexto(turno.hora)}</TableCell>
-              <TableCell>
-                {nombreCompleto(turno.paciente_nombre, turno.paciente_apellido)}
-              </TableCell>
-              <TableCell>{turno.modalidad || "—"}</TableCell>
-              <TableCell>
-                <Chip
-                  label={turno.estado || "—"}
-                  color={colorEstado(turno.estado)}
-                  size="small"
-                />
-              </TableCell>
-            </TableRow>
-          ))}
+          {turnos.map((turno) => {
+            const estadoActual = String(turno.estado || "").toLowerCase();
+            const acciones = ACCIONES[estadoActual] || [];
+
+            return (
+              <TableRow key={turno.id_turno} hover>
+                <TableCell>{fechaTexto(turno.fecha)}</TableCell>
+                <TableCell>{horaTexto(turno.hora)}</TableCell>
+                <TableCell>
+                  {nombreCompleto(
+                    turno.paciente_nombre,
+                    turno.paciente_apellido,
+                  )}
+                </TableCell>
+                <TableCell>{turno.modalidad || "—"}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={turno.estado || "—"}
+                    color={colorEstado(turno.estado)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  {acciones.length ? (
+                    <Stack direction="row" spacing={1}>
+                      {acciones.map((accion) => (
+                        <Button
+                          key={accion.estado}
+                          size="small"
+                          variant="outlined"
+                          color={accion.color}
+                          disabled={procesando !== null}
+                          onClick={() => alCambiarEstado(turno, accion.estado)}
+                        >
+                          {procesando?.id === turno.id_turno &&
+                          procesando?.estado === accion.estado
+                            ? "Guardando..."
+                            : accion.texto}
+                        </Button>
+                      ))}
+                    </Stack>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>
@@ -135,9 +183,10 @@ export default function PanelTerapeuta() {
     cargando: true,
     errores: [],
   });
-
   const [pestana, setPestana] = useState(0);
   const [recarga, setRecarga] = useState(0);
+  const [procesando, setProcesando] = useState(null);
+  const [aviso, setAviso] = useState(null);
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -152,7 +201,6 @@ export default function PanelTerapeuta() {
 
       const errores = [];
       const secciones = ["perfil", "pacientes", "turnos"];
-
       resultados.forEach((resultado, indice) => {
         if (resultado.status === "rejected") {
           errores.push(
@@ -161,20 +209,21 @@ export default function PanelTerapeuta() {
         }
       });
 
-      const valor = (indice, defecto) =>
-        resultados[indice].status === "fulfilled"
-          ? resultados[indice].value
-          : defecto;
+      setDatos((anterior) => {
+        const valor = (indice, defecto) =>
+          resultados[indice].status === "fulfilled"
+            ? resultados[indice].value
+            : defecto;
+        const pacientes = valor(1, anterior.pacientes);
+        const turnos = valor(2, anterior.turnos);
 
-      const pacientes = valor(1, []);
-      const turnos = valor(2, []);
-
-      setDatos({
-        perfil: valor(0, null),
-        pacientes: Array.isArray(pacientes) ? pacientes : [],
-        turnos: Array.isArray(turnos) ? turnos : [],
-        cargando: false,
-        errores,
+        return {
+          perfil: valor(0, anterior.perfil),
+          pacientes: Array.isArray(pacientes) ? pacientes : anterior.pacientes,
+          turnos: Array.isArray(turnos) ? turnos : anterior.turnos,
+          cargando: false,
+          errores,
+        };
       });
     });
 
@@ -182,12 +231,49 @@ export default function PanelTerapeuta() {
   }, [recarga]);
 
   const actualizar = () => {
-    setDatos((anterior) => ({
-      ...anterior,
-      cargando: true,
-      errores: [],
-    }));
+    setAviso(null);
+    setDatos((anterior) => ({ ...anterior, cargando: true, errores: [] }));
     setRecarga((valor) => valor + 1);
+  };
+
+  const cambiarEstado = async (turno, estado) => {
+    if (procesando !== null) return;
+
+    if (
+      estado === "cancelado" &&
+      !window.confirm("¿Querés cancelar este turno?")
+    ) {
+      return;
+    }
+
+    setProcesando({ id: turno.id_turno, estado });
+    setAviso(null);
+
+    try {
+      await consultar(`/turnos/${turno.id_turno}/estado`, undefined, {
+        method: "PATCH",
+        body: { estado },
+      });
+
+      setDatos((anterior) => ({
+        ...anterior,
+        turnos: anterior.turnos.map((item) =>
+          item.id_turno === turno.id_turno ? { ...item, estado } : item,
+        ),
+      }));
+      setAviso({
+        tipo: "success",
+        texto: "Estado del turno actualizado correctamente.",
+      });
+      setRecarga((valor) => valor + 1);
+    } catch (error) {
+      setAviso({
+        tipo: "error",
+        texto: error.message || "No se pudo actualizar el turno.",
+      });
+    } finally {
+      setProcesando(null);
+    }
   };
 
   const { perfil, pacientes, turnos, cargando, errores } = datos;
@@ -238,12 +324,24 @@ export default function PanelTerapeuta() {
               : "Fundación La Estrella"}
           </Typography>
         </Box>
-
-        <Button variant="outlined" onClick={actualizar}>
+        <Button
+          variant="outlined"
+          onClick={actualizar}
+          disabled={procesando !== null}
+        >
           Actualizar datos
         </Button>
       </Stack>
 
+      {aviso && (
+        <Alert
+          severity={aviso.tipo}
+          sx={{ mb: 2 }}
+          onClose={() => setAviso(null)}
+        >
+          {aviso.texto}
+        </Alert>
+      )}
       {errores.map((error, indice) => (
         <Alert key={indice} severity="error" sx={{ mb: 2 }}>
           {error}
@@ -290,7 +388,6 @@ export default function PanelTerapeuta() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Mi perfil
               </Typography>
-
               {!perfil ? (
                 <Alert severity="info">No hay información del perfil.</Alert>
               ) : (
@@ -327,7 +424,6 @@ export default function PanelTerapeuta() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Mis pacientes ({pacientes.length})
               </Typography>
-
               {!pacientes.length ? (
                 <Alert severity="info">No tenés pacientes vinculados.</Alert>
               ) : (
@@ -371,13 +467,21 @@ export default function PanelTerapeuta() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   Próximos turnos ({proximos.length})
                 </Typography>
-                <TablaTurnos turnos={proximos} />
+                <TablaTurnos
+                  turnos={proximos}
+                  alCambiarEstado={cambiarEstado}
+                  procesando={procesando}
+                />
               </Box>
               <Box>
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   Todos mis turnos ({turnos.length})
                 </Typography>
-                <TablaTurnos turnos={turnosOrdenados} />
+                <TablaTurnos
+                  turnos={turnosOrdenados}
+                  alCambiarEstado={cambiarEstado}
+                  procesando={procesando}
+                />
               </Box>
             </Stack>
           )}
