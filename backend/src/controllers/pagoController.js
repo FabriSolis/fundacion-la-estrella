@@ -30,10 +30,12 @@ async function listarPagos(req, res) {
         p.comprobante_url,
         p.observacion,
 
+        a.id_alumno AS id_alumno,
         ua.nombre AS alumno_nombre,
         ua.apellido AS alumno_apellido,
         c.nombre AS curso_nombre,
 
+        pa.id_paciente AS id_paciente,
         up.nombre AS paciente_nombre,
         up.apellido AS paciente_apellido,
 
@@ -156,8 +158,6 @@ async function crearPago(req, res) {
     }
 
     const montoNumero = Number(monto);
-    console.log("Monto recibido:", monto);
-    console.log("Monto convertido:", montoNumero);
 
     if (!Number.isFinite(montoNumero) || montoNumero <= 0) {
       return res.status(400).json({
