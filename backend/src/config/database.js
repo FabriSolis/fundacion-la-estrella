@@ -1,6 +1,10 @@
 const sql = require("mssql");
 require("dotenv").config();
 
+const esAzure = (process.env.DB_SERVER || "")
+  .toLowerCase()
+  .endsWith(".database.windows.net");
+
 const config = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -8,9 +12,8 @@ const config = {
   database: process.env.DB_DATABASE,
 
   options: {
-    instanceName: process.env.DB_INSTANCE,
-    encrypt: false,
-    trustServerCertificate: true,
+    encrypt: esAzure,
+    trustServerCertificate: !esAzure,
   },
 
   pool: {
@@ -19,9 +22,15 @@ const config = {
     idleTimeoutMillis: 30000,
   },
 
-  connectionTimeout: 15000,
-  requestTimeout: 15000,
+  connectionTimeout: 60000,
+  requestTimeout: 30000,
 };
+
+if (esAzure) {
+  config.port = 1433;
+} else if (process.env.DB_INSTANCE) {
+  config.options.instanceName = process.env.DB_INSTANCE;
+}
 
 let pool;
 
